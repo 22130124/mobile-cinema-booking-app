@@ -7,23 +7,14 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "email_otp")
+@Table(name = "password_reset_tokens")
 @Getter
 @Setter
-public class EmailOtp {
+public class PasswordResetToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+    private Integer id;
     private String email;
-
-    private String otp;
-
-    @Enumerated(EnumType.STRING)
-    private OtpType type;
-
+    private String token;
     private LocalDateTime expiredAt;
-
-    public enum OtpType {REGISTER, FORGOT_PASSWORD}
 }
-

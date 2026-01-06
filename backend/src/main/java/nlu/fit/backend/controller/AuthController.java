@@ -1,9 +1,7 @@
 package nlu.fit.backend.controller;
 
 import lombok.RequiredArgsConstructor;
-import nlu.fit.backend.dto.auth.request.LoginRequest;
-import nlu.fit.backend.dto.auth.request.RegisterRequest;
-import nlu.fit.backend.dto.auth.request.VerifyOtpRequest;
+import nlu.fit.backend.dto.auth.request.*;
 import nlu.fit.backend.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +35,19 @@ public class AuthController {
 
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody VerifyOtpRequest request) {
-        authService.verifyOtp(request);
+        String result = authService.verifyOtp(request);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> processForgotPassword(@RequestBody ForgotPasswordRequest request) {
+        authService.processForgotPassword(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request);
         return ResponseEntity.ok().build();
     }
 }
