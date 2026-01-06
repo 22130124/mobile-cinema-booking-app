@@ -11,6 +11,8 @@ import nlu.fit.backend.repository.PasswordResetTokenRepository;
 import nlu.fit.backend.util.JwtUtil;
 import nlu.fit.backend.util.OtpUtil;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -176,5 +178,27 @@ public class AuthService {
             // Xóa token trong database
             passwordResetTokenRepository.delete(resetToken);
         }
+    }
+
+    @Transactional
+    public void changePassword(ChangePasswordRequest request) {
+        // Lấy email người dùng đang đăng nhập
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth.getName();
+
+        // Lấy ra account tương ứng với email
+        Account account = accountRepository.findByEmail(email).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy tài khoản"));
+
+        // So khớp mật khẩu cũ
+        if (!passwordEncoder.matches(request.getOldPassword(), account.getPassword()))
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Mật khẩu cũ không chính xác");
+
+        // Mã hóa thông tin mật khẩu mới từ request
+        String hashedPassword = passwordEncoder.encode(request.getNewPassword());
+
+        // Cập nhật lại mật khẩu
+        account.setPassword(hashedPassword);
+        accountRepository.save(account);
     }
 }

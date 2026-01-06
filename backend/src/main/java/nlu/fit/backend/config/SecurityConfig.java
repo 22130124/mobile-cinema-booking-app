@@ -23,6 +23,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/admin/**").hasRole("ADMIN") // chỉ cho phép quyền admin
+                        .requestMatchers("/auth/change-password").hasRole("USER")
                         .requestMatchers("/auth/**").permitAll() // api công khai
                         .anyRequest().authenticated() // các api còn lại cần phải xác thức
                 )

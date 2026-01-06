@@ -3,6 +3,7 @@ package nlu.fit.backend.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -10,12 +11,12 @@ import java.util.Date;
 
 @Component
 public class JwtUtil {
-
-    private static final String SECRET = "cinema-secret-key-cinema-secret-key-123456";
+    @Value("${jwt.secret}")
+    private String jwtSecret;
     private static final long EXP = 1000 * 60 * 60 * 24;
 
     private SecretKey key() {
-        return Keys.hmacShaKeyFor(SECRET.getBytes());
+        return Keys.hmacShaKeyFor(jwtSecret.getBytes());
     }
 
     public String generate(String email, String role) {
