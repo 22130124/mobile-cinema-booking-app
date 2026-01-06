@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/auth/login_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -12,20 +13,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Cinema Booking App',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-      ),
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Cinema Booking App'),
-        ),
-        body: const Center(
-          child: Text(
-            'Cinema Booking App',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-        ),
-      ),
+      theme: ThemeData(primarySwatch: Colors.deepPurple),
+      home: const LoginScreen(),
     );
   }
 }
