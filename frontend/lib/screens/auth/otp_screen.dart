@@ -1,17 +1,49 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/auth/reset_password_screen.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
 import 'login_screen.dart';
 
-class OtpScreen extends StatelessWidget {
-  final String email; // Nhận email từ màn hình trước để hiển thị
+class OtpScreen extends StatefulWidget {
+  final String email;
+  final String type;
 
-  const OtpScreen({super.key, required this.email});
+  const OtpScreen({super.key, required this.email, required this.type});
+
+  @override
+  State<OtpScreen> createState() => _OtpScreenState();
+}
+
+class _OtpScreenState extends State<OtpScreen> {
+  final otpController = TextEditingController();
+  bool _isLoadingConfirm = false;
+  bool _isLoadingResend = false;
+  int _resendCountdown = 0;
+  Timer? _timer;
+
+  // Phương thức phục vụ đếm ngược thời gian gửi lại mã OTP
+  void _startCountdown() {
+    setState(() {
+      _resendCountdown = 60; // đếm ngược 60s
+    });
+
+    _timer?.cancel(); // cancel nếu đã có timer cũ
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_resendCountdown == 0) {
+        timer.cancel();
+      } else {
+        setState(() {
+          _resendCountdown--;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    final otpController = TextEditingController();
-
     return Scaffold(
       backgroundColor: Color(0xFF1A1A1A),
       appBar: AppBar(
@@ -26,11 +58,15 @@ class OtpScreen extends StatelessWidget {
           children: [
             const Text(
               "Xác Thực OTP",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 10),
             Text(
-              "Chúng tôi đã gửi mã xác nhận 6 số đến email:\n$email",
+              "Chúng tôi đã gửi mã xác nhận đến email:\n${widget.email}",
               style: const TextStyle(color: Colors.grey, height: 1.5),
             ),
             const SizedBox(height: 40),
@@ -47,26 +83,116 @@ class OtpScreen extends StatelessWidget {
             // Nút Gửi lại mã
             Center(
               child: TextButton(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Đã gửi lại mã mới!")),
-                  );
-                },
-                child: const Text("Chưa nhận được mã? Gửi lại", style: TextStyle(color: Colors.amber)),
+                onPressed: (_isLoadingResend || _resendCountdown > 0)
+                    ? null
+                    : () async {
+                        // Hiển thị biểu tượng loading trong lúc gọi API
+                        setState(() => _isLoadingResend = true);
+                        try {
+                          // Gọi API resend OTP
+                          await AuthService().resendOtp(widget.email);
+                          // Kiểm tra nếu context không còn sống thì không làm gì cả
+                          if (!context.mounted) return;
+                          // Hiển thị thông báo đã gửi lại mã OTP thành công
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Đã gửi lại mã OTP mới!"),
+                            ),
+                          );
+                          // Đếm ngược 60 giây cho lần gửi lại mã OTP sau
+                          _startCountdown();
+                        } catch (e) {
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          ScaffoldMessenger.of(
+                            context,
+                          ).showSnackBar(SnackBar(content: Text(e.toString())));
+                        } finally {
+                          if (context.mounted) {
+                            setState(() => _isLoadingResend = false);
+                          }
+                        }
+                      },
+                child: (_resendCountdown > 0)
+                    ? Text(
+                        "Gửi lại sau $_resendCountdown giây",
+                        style: const TextStyle(color: Colors.grey),
+                      )
+                    : (_isLoadingResend
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.amber,
+                              ),
+                            )
+                          : const Text(
+                              "Chưa nhận được mã? Gửi lại",
+                              style: TextStyle(color: Colors.amber),
+                            )),
               ),
             ),
 
             const SizedBox(height: 30),
             CustomButton(
               text: "Xác Nhận",
-              onTapSync: () {
-                // TODO: Gọi API kiểm tra mã OTP đúng hay sai
-                // Nếu đúng thì chuyển sang trang kế tiếp
-                Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen())
-                );
-              },
+              onTapAsync: _isLoadingConfirm
+                  ? null
+                  : () async {
+                      final otp = otpController.text.trim();
+                      // Kiểm tra nếu chưa nhập mã OTP
+                      if (otp.isEmpty) {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Vui lòng nhập OTP")),
+                        );
+                        return;
+                      }
+                      // Hiển thị biểu tượng loading trong khi gọi API
+                      setState(() => _isLoadingConfirm = true);
+                      try {
+                        // Gọi API xác thực mã OTP
+                        await AuthService().verifyOtp(widget.email, otp);
+                        if (!context.mounted) return;
+
+                        // Hiển thị thông báo xác minh thành công
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Xác minh OTP thành công!"),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+
+                        // Delay một chút trước khi chuyển trang để người
+                        // dùng kịp nhìn thấy thông báo
+                        await Future.delayed(const Duration(seconds: 2));
+
+                        // Nếu OTP đúng, chuyển sang trang login
+                        if (!context.mounted) return; //
+                        if (widget.type == "register") {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const LoginScreen(),
+                            ),
+                            (route) => false,
+                          );
+                        }
+                      } catch (e) {
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(e.toString())));
+                      } finally {
+                        if (context.mounted) {
+                          setState(() => _isLoadingConfirm = false);
+                        }
+                      }
+                    },
             ),
           ],
         ),

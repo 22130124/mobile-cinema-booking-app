@@ -58,6 +58,9 @@ public class AuthService {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã được sử dụng");
             } else {
                 // Nếu tài khoản này vẫn chưa xác minh email thì gửi lại mã otp để xác minh
+                // Mã hóa thông tin password từ request
+                String hashedPassword = passwordEncoder.encode(request.getPassword());
+                account.setPassword(hashedPassword);
                 sendOtp(email, REGISTER);
                 return;
             }
@@ -67,11 +70,11 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã được sử dụng");
         }
 
-        // Mã hóa thông tin password từ request
-        String hashedPassword = passwordEncoder.encode(request.getPassword());
         // Tạo tài khoản mới
         Account account = new Account();
         account.setEmail(email);
+        // Mã hóa thông tin password từ request
+        String hashedPassword = passwordEncoder.encode(request.getPassword());
         account.setPassword(hashedPassword);
         account.setRole(USER); // Mặc định khi đăng ký là quyền USER
         account.setStatus(UNVERIFIED); // Mặc định là tài khoản chưa được xác minh email
@@ -100,6 +103,19 @@ public class AuthService {
         emailOtpRepository.save(emailOtp);
         // Gửi mail chứa mã otp
         mailService.sendOtp(email, otp);
+    }
+
+    // Phương thức gửi lại mã OTP
+    @Transactional
+    public void resendOtp(ResendOtpRequest request) {
+        switch (request.getType().toLowerCase()) {
+            case "register":
+                sendOtp(request.getEmail(), REGISTER);
+                break;
+            case "forgot-password":
+                sendOtp(request.getEmail(), FORGOT_PASSWORD);
+                break;
+        }
     }
 
     // Phương thức xác thực mã Otp

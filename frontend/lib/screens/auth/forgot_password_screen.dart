@@ -24,7 +24,11 @@ class ForgotPasswordScreen extends StatelessWidget {
           children: [
             const Text(
               "Quên Mật Khẩu?",
-              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             const SizedBox(height: 10),
             const Text(
@@ -34,9 +38,9 @@ class ForgotPasswordScreen extends StatelessWidget {
             const SizedBox(height: 40),
             const Text("Email", style: TextStyle(color: Colors.white70)),
             CustomTextField(
-                controller: emailController,
-                hintText: "Nhập email của bạn",
-                icon: Icons.email_outlined
+              controller: emailController,
+              hintText: "Nhập email của bạn",
+              icon: Icons.email_outlined,
             ),
             const SizedBox(height: 30),
             CustomButton(
@@ -45,10 +49,13 @@ class ForgotPasswordScreen extends StatelessWidget {
                 // TODO: Gọi Service Forgot Pass
                 // Chuyển sang màn hình nhập OTP, truyền email vừa nhập qua
                 Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => OtpScreen(email: emailController.text)
-                    )
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OtpScreen(
+                      email: emailController.text,
+                      type: "forgot_password",
+                    ),
+                  ),
                 );
               },
             ),

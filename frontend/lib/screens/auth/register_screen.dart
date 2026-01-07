@@ -97,7 +97,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   if (email.isEmpty || pass.isEmpty || confirmPass.isEmpty) {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Vui lòng nhập đầy đủ thông tin")),
+                      const SnackBar(
+                        content: Text("Vui lòng nhập đầy đủ thông tin"),
+                      ),
                     );
                     return;
                   }
@@ -106,7 +108,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   if (pass != confirmPass) {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Mật khẩu không trùng khớp")),
+                      const SnackBar(
+                        content: Text("Mật khẩu không trùng khớp"),
+                      ),
                     );
                     return;
                   }
@@ -123,15 +127,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Nếu thành công, chuyển sang màn hình OTP
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => OtpScreen(email: email)),
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            OtpScreen(email: email, type: "register"),
+                      ),
                     );
                   } catch (e) {
                     if (!context.mounted) return;
 
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(e.toString())),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(e.toString())));
                   } finally {
                     if (mounted) setState(() => _isLoading = false);
                   }
