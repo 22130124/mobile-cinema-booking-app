@@ -41,7 +41,7 @@ class ForgotPasswordScreen extends StatelessWidget {
             const SizedBox(height: 30),
             CustomButton(
               text: "Gửi Mã Xác Nhận",
-              onTap: () {
+              onTapSync: () {
                 // TODO: Gọi Service Forgot Pass
                 // Chuyển sang màn hình nhập OTP, truyền email vừa nhập qua
                 Navigator.push(

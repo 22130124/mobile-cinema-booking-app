@@ -64,7 +64,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               const SizedBox(height: 40),
               CustomButton(
                 text: "Lưu Mật Khẩu",
-                onTap: () {
+                onTapSync: () {
                   // TODO: Gọi API Cập nhật mật khẩu mới
 
                   // Hiển thị thông báo thành công

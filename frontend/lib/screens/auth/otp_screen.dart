@@ -59,7 +59,7 @@ class OtpScreen extends StatelessWidget {
             const SizedBox(height: 30),
             CustomButton(
               text: "Xác Nhận",
-              onTap: () {
+              onTapSync: () {
                 // TODO: Gọi API kiểm tra mã OTP đúng hay sai
                 // Nếu đúng thì chuyển sang trang kế tiếp
                 Navigator.push(

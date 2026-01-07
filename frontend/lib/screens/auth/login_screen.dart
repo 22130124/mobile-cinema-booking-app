@@ -74,7 +74,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   CustomButton(
                     text: "Đăng Nhập",
-                    onTap: () {
+                    onTapSync: () {
                       // TODO: Gọi Service login
                       print("User: ${_emailController.text}");
                     },
