@@ -4,6 +4,28 @@ import 'package:http/http.dart' as http;
 class AuthService {
   final String baseUrl = "http://10.0.2.2:8080";
 
+  // Đăng nhập tài khoản
+  Future<String> login(String email, String password) async {
+    final url = Uri.parse('$baseUrl/auth/login');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "password": password}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+
+    // Khi đăng nhập thành công, backend sẽ trả về một jwt token
+    String jwtToken = response.body;
+    return jwtToken;
+  }
+
   // Đăng ký tài khoản
   Future<void> register(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/register');
@@ -12,9 +34,6 @@ class AuthService {
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"email": email, "password": password}),
     );
-
-    print("Status code: ${response.statusCode}");
-    print("Response body: ${response.body}");
 
     if (response.statusCode != 200) {
       // Lấy trực tiếp body
@@ -41,6 +60,9 @@ class AuthService {
       throw message;
     }
 
+    // Nếu xác thực OTP cho chức năng quên mật khẩu
+    // Thì API sẽ trả về một token để phục vụ cho việc đặt lại mật khẩu
+    // Còn nếu là xác thực OTP cho chức năng đăng ký thì sẽ trả về null
     return response.body;
   }
 
