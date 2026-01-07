@@ -19,14 +19,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(primarySwatch: Colors.deepPurple),
       // Default
-      // home: const LoginScreen(),
+      home: const LoginScreen(),
 
       /*
         Test Create Order Screen
         home: const OrderHistoryScreen(userId: 2),
         home: const CreateOrder(),
        */
-        home: const CreateOrder(),
     );
   }
 }

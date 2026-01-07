@@ -57,6 +57,7 @@ class OrderService {
       throw Exception("Lỗi khi tạo đơn hàng: $e");
     }
   }
+
   Future<Map<String, String>> createPaymentUrl(String bookingId) async {
     final response = await http.post(
       Uri.parse('$BASE_URL/payment/createPaymentUrl/$bookingId'),
@@ -65,13 +66,22 @@ class OrderService {
     print(response.body);
     if (response.statusCode == 200) {
       final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
-      return {
-        'paymentUrl': jsonResponse['paymentUrl'],
-      };
+      return {'paymentUrl': jsonResponse['paymentUrl']};
     } else {
       throw Exception('Tạo URL thanh toán thất bại');
     }
   }
 
-  Future<void> handleVNPayReturn() async {}
+  Future<void> deleteSeatHoldByUser(String orderId) async {
+    final response = await http.delete(
+      Uri.parse('$BASE_URL/booking/deleteSeatHoldByUser/$orderId'),
+      headers: {'Content-Type': 'application/json'},
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      print("Yêu cầu thực hiện thành công");
+    } else {
+      throw Exception('Lỗi máy chủ: ${response.statusCode}');
+    }
+  }
 }

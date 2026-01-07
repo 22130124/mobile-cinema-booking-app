@@ -5,7 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'package:frontend/model/order/OrderRequest.dart';
 import 'package:frontend/screens/payment/payment_success_screen.dart';
-import 'package:frontend/service/order/order_service.dart';
+import 'package:frontend/services/order/order_service.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class CreateOrder extends StatefulWidget {
@@ -26,15 +26,14 @@ class _CreateOrderState extends State<CreateOrder> {
   @override
   Widget build(BuildContext context) {
     void _handleCreateOrder() async {
-
       /*
       Create a sample order request
       Check duplicate SeatIDs in Database before creating order 
       */
       final request = OrderRequest(
-        showTimeId: 1,
+        showTimeId: 2,
         userId: 2,
-        seatIds: [3],
+        seatIds: [5],
         userInfor: UserInforRequest(
           userEmail: "john.doe@example.com",
           userPhone: "1234567890",
@@ -42,7 +41,6 @@ class _CreateOrderState extends State<CreateOrder> {
         ),
         seatTypeName: "Thường",
       );
-
 
       try {
         /*
@@ -52,7 +50,7 @@ class _CreateOrderState extends State<CreateOrder> {
         final response = await OrderService().createOrder(request);
         final paymentData = await OrderService().createPaymentUrl(response.id);
         final String paymentUrl = paymentData['paymentUrl']!;
-        await openPaymentUrl(context, paymentUrl);
+        await openPaymentUrl(context, paymentUrl, response.id);
       } catch (e) {
         print("Failed to create order: $e");
       }
@@ -76,12 +74,18 @@ class _CreateOrderState extends State<CreateOrder> {
     );
   }
 
-  Future<void> openPaymentUrl(BuildContext context, String paymentUrl) async {
+  Future<void> openPaymentUrl(
+    BuildContext context,
+    String paymentUrl,
+    String orderId,
+  ) async {
     final url = paymentUrl.replaceAll(RegExp(r'\s+'), '');
     final uri = Uri.tryParse(url);
     if (uri == null) {
       throw Exception('Invalid payment URL');
     }
+
+    bool paymentCompleted = false;
 
     // Try external browser first
     try {
@@ -98,7 +102,7 @@ class _CreateOrderState extends State<CreateOrder> {
           onNavigationRequest: (NavigationRequest req) async {
             final url = req.url;
             if (url.startsWith('cinemapp://')) {
-              Navigator.of(context).pop(); 
+              Navigator.of(context).pop();
               try {
                 final uri = Uri.parse(url);
                 final orderId =
@@ -124,9 +128,7 @@ class _CreateOrderState extends State<CreateOrder> {
           },
         ),
       )
-      ..loadRequest(uri, headers: {
-        'ngrok-skip-browser-warning': 'true',
-      });
+      ..loadRequest(uri, headers: {'ngrok-skip-browser-warning': 'true'});
 
     await showDialog(
       context: context,
@@ -148,13 +150,14 @@ class _CreateOrderState extends State<CreateOrder> {
                     const Spacer(),
                     IconButton(
                       icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(ctx).pop(),
+                      onPressed: () async {
+                        await OrderService().deleteSeatHoldByUser(orderId);
+                        Navigator.of(ctx).pop();
+                      },
                     ),
                   ],
                 ),
-                Expanded(
-                  child: WebViewWidget(controller: controller),
-                ),
+                Expanded(child: WebViewWidget(controller: controller)),
               ],
             ),
           ),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/model/order/Order.dart';
-import 'package:frontend/service/order/order_service.dart';
+import 'package:frontend/services/order/order_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class PaymentSuccessScreen extends StatefulWidget {
