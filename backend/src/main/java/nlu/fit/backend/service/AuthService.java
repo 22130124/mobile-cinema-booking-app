@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 import static nlu.fit.backend.model.Account.AccountRole.*;
@@ -44,6 +45,23 @@ public class AuthService {
     public void register(RegisterRequest request) {
         // Lấy ra thông tin email từ request
         String email = request.getEmail();
+
+        // Tìm trong database đã có tài khoản với email này chưa
+        Optional<Account> accountOpt = accountRepository.findByEmail(email);
+
+        // Nếu đã tồn tại tài khoản với email này
+        if (accountOpt.isPresent()) {
+            Account account = accountOpt.get();
+
+            // Nếu tài khoản này đã được xác minh rồi thì báo lỗi email đã được sử dụng
+            if (account.getStatus() != UNVERIFIED) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã được sử dụng");
+            } else {
+                // Nếu tài khoản này vẫn chưa xác minh email thì gửi lại mã otp để xác minh
+                sendOtp(email, REGISTER);
+                return;
+            }
+        }
 
         if (accountRepository.existsByEmail(email)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã được sử dụng");
