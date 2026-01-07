@@ -25,6 +25,8 @@ public class SecurityConfig {
                         .requestMatchers("/auth/admin/**").hasRole("ADMIN") // chỉ cho phép quyền admin
                         .requestMatchers("/auth/change-password").hasRole("USER")
                         .requestMatchers("/auth/**").permitAll() // api công khai
+                        .requestMatchers("/api/booking/**").hasRole("USER")
+                        .requestMatchers("/api/payment/**").hasRole("USER")
                         .anyRequest().authenticated() // các api còn lại cần phải xác thức
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
