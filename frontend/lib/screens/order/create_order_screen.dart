@@ -26,6 +26,11 @@ class _CreateOrderState extends State<CreateOrder> {
   @override
   Widget build(BuildContext context) {
     void _handleCreateOrder() async {
+
+      /*
+      Create a sample order request
+      Check duplicate SeatIDs in Database before creating order 
+      */
       final request = OrderRequest(
         showTimeId: 1,
         userId: 2,
@@ -37,16 +42,16 @@ class _CreateOrderState extends State<CreateOrder> {
         ),
         seatTypeName: "Thường",
       );
+
+
       try {
+        /*
+        Call API to create order and get payment URL
+        Then open payment URL in WebView or external browser
+         */
         final response = await OrderService().createOrder(request);
-        print("Order created successfully: $response.id");
         final paymentData = await OrderService().createPaymentUrl(response.id);
         final String paymentUrl = paymentData['paymentUrl']!;
-        // if (await canLaunchUrl(Uri.parse(paymentUrl))) {
-        //   await launchUrl(Uri.parse(paymentUrl));
-        // } else {
-        //   throw 'Could not launch $paymentUrl';
-        // }
         await openPaymentUrl(context, paymentUrl);
       } catch (e) {
         print("Failed to create order: $e");
@@ -65,27 +70,6 @@ class _CreateOrderState extends State<CreateOrder> {
               onPressed: _handleCreateOrder,
               child: Text('Create Order'),
             ),
-            // ElevatedButton(
-            //   onPressed: () {
-            //     final fakeUri = Uri.parse(
-            //       "cinemapp://payment-result?orderId=313f0191-9ec1-4585-b3f0-2ec939b55d03&status=success",
-            //     );
-            //     String? status = fakeUri.queryParameters['status'];
-            //     String? orderId = fakeUri.queryParameters['orderId'];
-            //     if (status == 'success' && orderId != null) {
-            //       Navigator.push(
-            //         context,
-            //         MaterialPageRoute(
-            //           builder: (context) =>
-            //               PaymentSuccessScreen(orderId: orderId),
-            //         ),
-            //       );
-            //     } else {
-            //       print("Thanh toán thất bại hoặc hủy bỏ");
-            //     }
-            //   },
-            //   child: Text('Simulate Payment Success'),
-            // ),
           ],
         ),
       ),
@@ -140,7 +124,9 @@ class _CreateOrderState extends State<CreateOrder> {
           },
         ),
       )
-      ..loadRequest(uri);
+      ..loadRequest(uri, headers: {
+        'ngrok-skip-browser-warning': 'true',
+      });
 
     await showDialog(
       context: context,
