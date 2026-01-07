@@ -154,7 +154,10 @@ class _OtpScreenState extends State<OtpScreen> {
                       setState(() => _isLoadingConfirm = true);
                       try {
                         // Gọi API xác thực mã OTP
-                        await AuthService().verifyOtp(widget.email, otp);
+                        final result = await AuthService().verifyOtp(
+                          widget.email,
+                          otp,
+                        );
                         if (!context.mounted) return;
 
                         // Hiển thị thông báo xác minh thành công
@@ -172,14 +175,29 @@ class _OtpScreenState extends State<OtpScreen> {
 
                         // Nếu OTP đúng, chuyển sang trang login
                         if (!context.mounted) return; //
-                        if (widget.type == "register") {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const LoginScreen(),
-                            ),
-                            (route) => false,
-                          );
+                        switch (widget.type) {
+                          case "register":
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const LoginScreen(),
+                              ),
+                              (route) => false,
+                            );
+                            break;
+                          case "forgot_password":
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ResetPasswordScreen(
+                                  email: widget.email,
+                                  token: result,
+                                ),
+                              ),
+                            );
+                            break;
+                          default:
+                            break;
                         }
                       } catch (e) {
                         if (!context.mounted) return;
