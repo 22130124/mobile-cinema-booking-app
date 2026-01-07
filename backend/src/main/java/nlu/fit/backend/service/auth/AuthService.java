@@ -1,13 +1,17 @@
-package nlu.fit.backend.service;
+package nlu.fit.backend.service.auth;
 
 import lombok.RequiredArgsConstructor;
 import nlu.fit.backend.dto.auth.request.*;
-import nlu.fit.backend.model.Account;
-import nlu.fit.backend.model.EmailOtp;
-import nlu.fit.backend.model.PasswordResetToken;
-import nlu.fit.backend.repository.AccountRepository;
-import nlu.fit.backend.repository.EmailOtpRepository;
-import nlu.fit.backend.repository.PasswordResetTokenRepository;
+import nlu.fit.backend.dto.auth.response.LoginResponse;
+import nlu.fit.backend.model.auth.Account;
+import nlu.fit.backend.model.auth.EmailOtp;
+import nlu.fit.backend.model.auth.PasswordResetToken;
+import nlu.fit.backend.model.user.User;
+import nlu.fit.backend.repository.auth.AccountRepository;
+import nlu.fit.backend.repository.auth.EmailOtpRepository;
+import nlu.fit.backend.repository.auth.PasswordResetTokenRepository;
+import nlu.fit.backend.service.MailService;
+import nlu.fit.backend.service.user.UserService;
 import nlu.fit.backend.util.JwtUtil;
 import nlu.fit.backend.util.OtpUtil;
 import org.springframework.http.HttpStatus;
@@ -22,9 +26,9 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
-import static nlu.fit.backend.model.Account.AccountRole.*;
-import static nlu.fit.backend.model.Account.AccountStatus.*;
-import static nlu.fit.backend.model.EmailOtp.OtpType.*;
+import static nlu.fit.backend.model.auth.Account.AccountRole.*;
+import static nlu.fit.backend.model.auth.Account.AccountStatus.*;
+import static nlu.fit.backend.model.auth.EmailOtp.OtpType.*;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +39,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwt;
     private final MailService mailService;
+    private final UserService userService;
 
     public String checkHealth() {
         return "OK";
@@ -70,8 +75,12 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã được sử dụng");
         }
 
+        // Tạo User mới (thông tin rỗng)
+        User user = userService.createAndReturnEmptyUser();
+
         // Tạo tài khoản mới
         Account account = new Account();
+        account.setUser(user);
         account.setEmail(email);
         // Mã hóa thông tin password từ request
         String hashedPassword = passwordEncoder.encode(request.getPassword());
@@ -81,7 +90,7 @@ public class AuthService {
         // Lưu vào database
         accountRepository.save(account);
 
-        // Gửi mã OTP
+        // Gửi mã OTP xác minh email
         sendOtp(email, REGISTER);
     }
 
@@ -166,15 +175,28 @@ public class AuthService {
     }
 
     // Phương thức đăng nhập tài khoản
-    public String login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         // Tìm tài khoản theo email
         Account account = accountRepository.findByEmail(request.getEmail()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thông tin đăng nhập không chính xác"));
         // So khớp mật khẩu
         if (!passwordEncoder.matches(request.getPassword(), account.getPassword()))
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thông tin đăng nhập không chính xác");
-        // Trả về jwt token
-        return jwt.generate(account.getEmail(), String.valueOf(account.getRole()));
+
+        // Tạo response trả về
+        LoginResponse loginResponse = new LoginResponse();
+        // Tạo và gán giá trị jwt token vào response
+        String jwtToken = jwt.generate(account.getEmail(), String.valueOf(account.getRole()));
+        loginResponse.setJwtToken(jwtToken);
+        // Tìm và gán giá trị userStatus (true/false) vào response
+        // Để frontend biết được hồ sơ người dùng đã hoàn thiện chưa
+        // Để quyết định chuyển hướng vào trang chủ hay trang hồ sơ người dùng để cập nhật thông tin cho đầy đủ
+        if (account.getRole() == USER) {
+            boolean userStatus = userService.getUserStatus(account.getUser());
+            loginResponse.setUserStatus(userStatus);
+        }
+
+        return loginResponse;
     }
 
     // Phương thức xử lý yêu cầu quên mật khẩu

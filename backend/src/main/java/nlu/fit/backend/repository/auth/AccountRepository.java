@@ -1,6 +1,6 @@
-package nlu.fit.backend.repository;
+package nlu.fit.backend.repository.auth;
 
-import nlu.fit.backend.model.Account;
+import nlu.fit.backend.model.auth.Account;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

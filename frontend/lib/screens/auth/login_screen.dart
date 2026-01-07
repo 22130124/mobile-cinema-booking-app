@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/home/home_screen.dart';
+import 'package:frontend/screens/user/profile_info_screen.dart';
 import 'package:frontend/services/auth_service.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import '../../storage/jwt_token_storage.dart';
+import '../admin/dashboard_screen.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../../widgets/auth/custom_textfield.dart';
@@ -117,25 +120,73 @@ class _LoginScreenState extends State<LoginScreen> {
                       setState(() => _isLoading = true);
                       try {
                         // Gọi API đăng nhập tài khoản
-                        // Kết quả trả về jwt token
-                        final jwtToken = await AuthService().login(
+                        final result = await AuthService().login(
                           email,
                           password,
                         );
 
-                        debugPrint("JWT Token: $jwtToken");
+                        // Lấy ra JWT Token từ kết quả trả về từ API
+                        final jwtToken = result.jwtToken;
 
-                        // Nếu đăng nhập thành công thì lưu jwt token vào storage
+                        // Decode JWT bằng jwt_decoder để lấy ra role người dùng
+                        Map<String, dynamic> payload = JwtDecoder.decode(
+                          jwtToken,
+                        );
+                        String role = payload['role'] ?? 'USER';
+
+                        // Lưu jwt token vào storage
                         await JwtTokenStorage.saveToken(jwtToken);
 
                         // Kiểm tra context còn sống hay không
                         if (!context.mounted) return;
-                        // Chuyển hướng vào trang chủ
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const HomeScreen()),
-                          (route) => false,
-                        );
+
+                        // Dựa vào role để quyết định vào trang người dùng hay admin
+                        switch (role) {
+                          case "USER":
+                            // Kiểm tra trạng thái hồ sơ người dùng
+                            final userStatus = result.userStatus;
+                            if (userStatus == false) {
+                              // Nếu hồ sơ người dùng chưa hoàn thiện
+                              // Chuyển hướng vào trang profile
+                              Navigator.pushAndRemoveUntil(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ProfileInfoScreen(),
+                                ),
+                                    (route) => false,
+                              );
+                              break;
+                            }
+                            // Chuyển hướng vào trang chủ
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const HomeScreen(),
+                              ),
+                              (route) => false,
+                            );
+                            break;
+                          case "ADMIN":
+                            // Chuyển hướng vào trang dashboard
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const DashboardScreen(),
+                              ),
+                              (route) => false,
+                            );
+                            break;
+                          default:
+                            // Mặc định chuyển hướng vào trang chủ
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const HomeScreen(),
+                              ),
+                              (route) => false,
+                            );
+                            break;
+                        }
                       } catch (e) {
                         if (!context.mounted) return;
 

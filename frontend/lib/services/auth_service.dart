@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'package:frontend/dtos/auth/login_response.dart';
 import 'package:http/http.dart' as http;
 
 class AuthService {
   final String baseUrl = "http://10.0.2.2:8080";
 
   // Đăng nhập tài khoản
-  Future<String> login(String email, String password) async {
+  Future<LoginResponse> login(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/login');
     final response = await http.post(
       url,
@@ -21,9 +22,11 @@ class AuthService {
       throw message;
     }
 
-    // Khi đăng nhập thành công, backend sẽ trả về một jwt token
-    String jwtToken = response.body;
-    return jwtToken;
+    // Khi đăng nhập thành công, backend sẽ trả về jwt token và userStatus
+    // userStatus: trạng thái cho biết hồ sơ người dùng đã hoàn thiện chưa
+    // Parse JSON từ backend
+    final Map<String, dynamic> data = jsonDecode(response.body);
+    return LoginResponse.fromJson(data);
   }
 
   // Đăng ký tài khoản

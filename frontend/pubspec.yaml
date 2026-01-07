@@ -9,8 +9,10 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
-  http: ^1.6.0
-  flutter_secure_storage: ^10.0.0
+  http: ^1.6.0 # Thư viện HTTP để gửi yêu cầu API
+  flutter_secure_storage: ^10.0.0 # Kho lưu trữ bảo mật
+  image_picker: ^1.2.1 # Chọn ảnh
+  jwt_decoder: ^2.0.1 # Decode jwt token
 
 dev_dependencies:
   flutter_test:
