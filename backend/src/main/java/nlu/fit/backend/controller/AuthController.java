@@ -2,6 +2,7 @@ package nlu.fit.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import nlu.fit.backend.dto.auth.request.*;
+import nlu.fit.backend.model.EmailOtp;
 import nlu.fit.backend.service.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +32,12 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         String jwtToken = authService.login(request);
         return ResponseEntity.ok(jwtToken);
+    }
+
+    @PostMapping("/resend-otp")
+    public ResponseEntity<?> resendRegisterOtp(@RequestBody ResendOtpRequest request) {
+        authService.resendOtp(request);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/verify-otp")

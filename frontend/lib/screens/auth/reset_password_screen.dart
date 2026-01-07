@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
 import 'login_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  const ResetPasswordScreen({super.key});
+  final String email;
+  final String token;
+
+  const ResetPasswordScreen({super.key, required this.email, required this.token});
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -14,6 +18,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _newPassController = TextEditingController();
   final _confirmPassController = TextEditingController();
   bool _isObscure = true;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // In ra console khi vừa vào màn hình
+    debugPrint("ResetPasswordScreen INIT");
+    debugPrint("Email nhận được: ${widget.email}");
+    debugPrint("Token nhận được: ${widget.token}");
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,32 +79,76 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               const SizedBox(height: 40),
               CustomButton(
                 text: "Lưu Mật Khẩu",
-                onTap: () {
-                  // TODO: Gọi API Cập nhật mật khẩu mới
+                isLoading: _isLoading,
+                onTapAsync: () async {
+                  final password = _newPassController.text;
+                  final confirmPassword = _confirmPassController.text;
 
-                  // Hiển thị thông báo thành công
-                  showDialog(
-                      context: context,
-                      barrierDismissible: false, // Bắt buộc bấm nút để đóng
-                      builder: (context) => AlertDialog(
-                        backgroundColor: const Color(0xFF2C2C2C),
-                        title: const Text("Thành Công", style: TextStyle(color: Colors.white)),
-                        content: const Text("Mật khẩu của bạn đã được thay đổi. Vui lòng đăng nhập lại.", style: TextStyle(color: Colors.white70)),
-                        actions: [
-                          TextButton(
-                            onPressed: () {
-                              // Xóa hết các màn hình cũ trong stack và về Login
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(builder: (context) => const LoginScreen()),
-                                    (route) => false,
-                              );
-                            },
-                            child: const Text("Về Đăng Nhập", style: TextStyle(color: Colors.amber)),
-                          )
-                        ],
-                      )
-                  );
+                  if (password.isEmpty || confirmPassword.isEmpty) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Vui lòng nhập đầy đủ thông tin"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  if (password != confirmPassword) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Mật khẩu không trùng khớp"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Hiển thị biểu tượng loading
+                  setState(() => _isLoading = true);
+                  try {
+                    // Gọi API đặt lại mật khẩu
+                    await AuthService().resetPassword(
+                      widget.email,
+                      widget.token,
+                      _newPassController.text,
+                    );
+
+                    // Hiển thị thông báo đặt lại mật khẩu thành công
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Đặt lại mật khẩu thành công!"),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+
+                    // Delay một chút trước khi chuyển trang để người
+                    // dùng kịp nhìn thấy thông báo
+                    await Future.delayed(const Duration(seconds: 2));
+
+                    // Kiểm tra context còn sống hay không
+                    if (!context.mounted) return;
+                    // Quay về trang login
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const LoginScreen(),
+                      ),
+                          (route) => false,
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(e.toString())));
+                  } finally {
+                    if (context.mounted) {
+                      setState(() => _isLoading = false);
+                    }
+                  }
                 },
               ),
             ],

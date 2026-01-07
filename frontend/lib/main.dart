@@ -4,6 +4,8 @@ import 'package:frontend/screens/order/create_order_screen.dart';
 import 'package:frontend/screens/order/order_history_screen.dart';
 
 void main() {
+  //
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 

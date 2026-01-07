@@ -2,14 +2,26 @@ import 'package:flutter/material.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
-  final VoidCallback onTap;
+  final VoidCallback? onTapSync;
+  final Future<void> Function()? onTapAsync;
+  final bool isLoading;
 
-  const CustomButton({super.key, required this.text, required this.onTap});
+  const CustomButton({
+    super.key,
+    required this.text,
+    this.onTapSync,
+    this.onTapAsync,
+    this.isLoading = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: isLoading
+          ? null
+          : onTapAsync != null
+          ? () => onTapAsync!()
+          : onTapSync,
       borderRadius: BorderRadius.circular(30),
       child: Container(
         width: double.infinity,
@@ -23,7 +35,16 @@ class CustomButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(30),
         ),
         alignment: Alignment.center,
-        child: Text(
+        child: isLoading
+            ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            color: Colors.black,
+            strokeWidth: 2,
+          ),
+        )
+            : Text(
           text,
           style: const TextStyle(
             color: Colors.black,
