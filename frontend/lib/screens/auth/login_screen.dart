@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/home/home_screen.dart';
+import 'package:frontend/services/auth_service.dart';
+import '../../storage/jwt_token_storage.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../../widgets/auth/custom_textfield.dart';
@@ -17,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isObscure = true;
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +37,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Text(
                     "Chào Mừng Quay Trở Lại!",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 5),
                   const Text(
@@ -42,7 +50,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 30),
 
-                  const Text("Tài Khoản", style: TextStyle(color: Colors.white70)),
+                  const Text(
+                    "Tài Khoản",
+                    style: TextStyle(color: Colors.white70),
+                  ),
                   CustomTextField(
                     controller: _emailController,
                     hintText: "Email",
@@ -50,23 +61,35 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
 
                   const SizedBox(height: 10),
-                  const Text("Mật Khẩu", style: TextStyle(color: Colors.white70)),
+                  const Text(
+                    "Mật Khẩu",
+                    style: TextStyle(color: Colors.white70),
+                  ),
                   CustomTextField(
                     controller: _passwordController,
                     hintText: "Mật khẩu",
                     icon: Icons.lock_outline,
                     isPassword: true,
                     isObscure: _isObscure,
-                    onTogglePassword: () => setState(() => _isObscure = !_isObscure),
+                    onTogglePassword: () =>
+                        setState(() => _isObscure = !_isObscure),
                   ),
 
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()));
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const ForgotPasswordScreen(),
+                          ),
+                        );
                       },
-                      child: const Text("Quên Mật Khẩu?", style: TextStyle(color: Colors.grey)),
+                      child: const Text(
+                        "Quên Mật Khẩu?",
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ),
                   ),
 
@@ -74,9 +97,57 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   CustomButton(
                     text: "Đăng Nhập",
-                    onTap: () {
-                      // TODO: Gọi Service login
-                      print("User: ${_emailController.text}");
+                    isLoading: _isLoading,
+                    onTapAsync: () async {
+                      final email = _emailController.text;
+                      final password = _passwordController.text;
+
+                      // Kiểm tra thông tin nhập vào
+                      if (email.isEmpty || password.isEmpty) {
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text("Vui lòng nhập đầy đủ thông tin"),
+                          ),
+                        );
+                        return;
+                      }
+
+                      // Hiển thị biểu tượng loading trong lúc gọi API
+                      setState(() => _isLoading = true);
+                      try {
+                        // Gọi API đăng nhập tài khoản
+                        // Kết quả trả về jwt token
+                        final jwtToken = await AuthService().login(
+                          email,
+                          password,
+                        );
+
+                        debugPrint("JWT Token: $jwtToken");
+
+                        // Nếu đăng nhập thành công thì lưu jwt token vào storage
+                        await JwtTokenStorage.saveToken(jwtToken);
+
+                        // Kiểm tra context còn sống hay không
+                        if (!context.mounted) return;
+                        // Chuyển hướng vào trang chủ
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const HomeScreen()),
+                          (route) => false,
+                        );
+                      } catch (e) {
+                        if (!context.mounted) return;
+
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(e.toString())));
+
+                        debugPrint(e.toString());
+                      } finally {
+                        if (context.mounted) setState(() => _isLoading = false);
+                      }
                     },
                   ),
 
@@ -88,7 +159,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       Expanded(child: Divider(color: Colors.grey)),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 10),
-                        child: Text("Hoặc", style: TextStyle(color: Colors.grey)),
+                        child: Text(
+                          "Hoặc",
+                          style: TextStyle(color: Colors.grey),
+                        ),
                       ),
                       Expanded(child: Divider(color: Colors.grey)),
                     ],
@@ -100,7 +174,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   SocialButton(
                     text: "Đăng nhập với Google",
                     // Link icon Google
-                    iconUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
+                    iconUrl:
+                        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
                     onTap: () {
                       // TODO: Tích hợp Google Sign In
                       print("Nhấn nút Google");
@@ -111,19 +186,33 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Bạn chưa có tài khoản? ", style: TextStyle(color: Colors.grey)),
+                      const Text(
+                        "Bạn chưa có tài khoản? ",
+                        style: TextStyle(color: Colors.grey),
+                      ),
                       GestureDetector(
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterScreen()));
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterScreen(),
+                            ),
+                          );
                         },
-                        child: const Text("Đăng Ký", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                      )
+                        child: const Text(
+                          "Đăng Ký",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 30),
                 ],
               ),
-            )
+            ),
           ],
         ),
       ),

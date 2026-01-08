@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/auth_service.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
 import '../../widgets/auth/social_button.dart';
@@ -16,6 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passController = TextEditingController();
   final _confirmPassController = TextEditingController();
   bool _isObscure = true;
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +39,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             children: [
               const Text(
                 "Bắt Đầu Đăng Ký Miễn Phí",
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 5),
               const Text(
@@ -47,7 +53,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 30),
 
               const Text("Email", style: TextStyle(color: Colors.white70)),
-              CustomTextField(controller: _emailController, hintText: "yourname@gmail.com", icon: Icons.email_outlined),
+              CustomTextField(
+                controller: _emailController,
+                hintText: "yourname@gmail.com",
+                icon: Icons.email_outlined,
+              ),
 
               const Text("Mật Khẩu", style: TextStyle(color: Colors.white70)),
               CustomTextField(
@@ -56,30 +66,88 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 icon: Icons.lock_outline,
                 isPassword: true,
                 isObscure: _isObscure,
-                onTogglePassword: () => setState(() => _isObscure = !_isObscure),
+                onTogglePassword: () =>
+                    setState(() => _isObscure = !_isObscure),
               ),
 
-              const Text("Nhập Lại Mật Khẩu", style: TextStyle(color: Colors.white70)),
+              const Text(
+                "Nhập Lại Mật Khẩu",
+                style: TextStyle(color: Colors.white70),
+              ),
               CustomTextField(
                 controller: _confirmPassController,
                 hintText: "Nhập lại mật khẩu",
                 icon: Icons.lock_outline,
                 isPassword: true,
                 isObscure: _isObscure,
-                onTogglePassword: () => setState(() => _isObscure = !_isObscure),
+                onTogglePassword: () =>
+                    setState(() => _isObscure = !_isObscure),
               ),
 
               const SizedBox(height: 30),
               CustomButton(
                 text: "Đăng Ký",
-                onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => OtpScreen(email: _emailController.text)));
+                isLoading: _isLoading,
+                onTapAsync: () async {
+                  final email = _emailController.text;
+                  final pass = _passController.text;
+                  final confirmPass = _confirmPassController.text;
+
+                  // Kiểm tra thông tin nhập vào
+                  if (email.isEmpty || pass.isEmpty || confirmPass.isEmpty) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Vui lòng nhập đầy đủ thông tin"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Kiểm tra mật khẩu có khớp hay không
+                  if (pass != confirmPass) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Mật khẩu không trùng khớp"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Hiển thị biểu tượng loading trong lúc gọi API
+                  setState(() => _isLoading = true);
+
+                  try {
+                    await AuthService().register(email, pass);
+
+                    // Kiểm tra context còn sống hay không
+                    if (!context.mounted) return;
+
+                    // Nếu thành công, chuyển sang màn hình OTP
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            OtpScreen(email: email, type: "register"),
+                      ),
+                    );
+                  } catch (e) {
+                    if (!context.mounted) return;
+
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text(e.toString())));
+                  } finally {
+                    if (mounted) setState(() => _isLoading = false);
+                  }
                 },
               ),
 
               const SizedBox(height: 25),
 
-              // --- Phần phân cách "Hoặc" ---
+              // Phần phân cách "Hoặc"
               Row(
                 children: const [
                   Expanded(child: Divider(color: Colors.grey)),
@@ -93,11 +161,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               const SizedBox(height: 25),
 
-              // --- Nút Đăng nhập Google ---
+              // Nút Đăng nhập Google
               SocialButton(
                 text: "Đăng nhập với Google",
                 // Link icon Google
-                iconUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
+                iconUrl:
+                    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
                 onTap: () {
                   // TODO: Tích hợp Google Sign In
                   print("Nhấn nút Google");
