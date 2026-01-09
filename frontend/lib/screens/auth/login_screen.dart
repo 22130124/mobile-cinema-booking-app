@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/home/home_screen.dart';
 import 'package:frontend/screens/user/profile_info_screen.dart';
-import 'package:frontend/services/auth_service.dart';
+import 'package:frontend/services/auth/auth_service.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../../storage/jwt_token_storage.dart';
 import '../admin/dashboard_screen.dart';

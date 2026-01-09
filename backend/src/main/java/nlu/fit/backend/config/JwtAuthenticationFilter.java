@@ -45,13 +45,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     .parseSignedClaims(authHeader.substring(7))
                     .getPayload();
 
-            // Lấy thông tin email và role từ JWT
-            String email = claims.getSubject();
+            // Lấy thông tin từ JWT
+            Long userId = Long.valueOf(claims.getSubject());
             String role = claims.get("role", String.class);
 
             // Tạo đối tượng Authentication để lưu thông tin người dùng vào SecurityContext
             var auth = new UsernamePasswordAuthenticationToken(
-                    email,
+                    userId,
                     null,
                     List.of(new SimpleGrantedAuthority("ROLE_" + role))
             );

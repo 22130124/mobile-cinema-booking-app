@@ -186,7 +186,7 @@ public class AuthService {
         // Tạo response trả về
         LoginResponse loginResponse = new LoginResponse();
         // Tạo và gán giá trị jwt token vào response
-        String jwtToken = jwt.generate(account.getEmail(), String.valueOf(account.getRole()));
+        String jwtToken = jwt.generate(account.getEmail(), account.getUser().getId(), String.valueOf(account.getRole()));
         loginResponse.setJwtToken(jwtToken);
         // Tìm và gán giá trị userStatus (true/false) vào response
         // Để frontend biết được hồ sơ người dùng đã hoàn thiện chưa

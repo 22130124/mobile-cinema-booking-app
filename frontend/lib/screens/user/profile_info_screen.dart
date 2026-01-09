@@ -1,5 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:frontend/models/user/update_user_request.dart';
+import 'package:frontend/screens/home/home_screen.dart';
+import 'package:frontend/services/user/user_service.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
@@ -15,7 +18,7 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
   final _fullNameController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  String _gender = "nam";
+  String _gender = "male";
   File? _avatar;
   bool _isLoading = false;
 
@@ -152,6 +155,11 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
               text: "Lưu Thông Tin",
               isLoading: _isLoading,
               onTapAsync: () async {
+                final fullName = _fullNameController.text;
+                final phone = _phoneController.text;
+                final gender = _gender;
+
+                // Kiểm tra dữ liệu đầu vào
                 if (_fullNameController.text.isEmpty ||
                     _phoneController.text.isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -162,24 +170,47 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                   return;
                 }
 
+                // Hiển thị trạng thái loading khi đang gọi API
                 setState(() => _isLoading = true);
+                try {
+                  final updateProfileRequest = UpdateUserRequest(fullName: fullName, phone: phone, gender: gender);
+                  await UserService().updateProfile(updateProfileRequest);
 
-                await Future.delayed(const Duration(seconds: 1));
+                  // Kiểm tra context còn sống hay không
+                  if (!context.mounted) return;
 
-                debugPrint("Họ tên: ${_fullNameController.text}");
-                debugPrint("Giới tính: $_gender");
-                debugPrint("SĐT: ${_phoneController.text}");
-                debugPrint("Avatar: ${_avatar?.path}");
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text("Cập nhật thông tin hồ sơ thành công"),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
 
-                if (!context.mounted) return;
+                  // Delay một chút trước khi chuyển trang để người
+                  // dùng kịp nhìn thấy thông báo
+                  await Future.delayed(const Duration(seconds: 2));
 
-                setState(() => _isLoading = false);
+                  if (!context.mounted) return;
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("Lưu thông tin thành công"),
-                  ),
-                );
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const HomeScreen(),
+                    ),
+                        (route) => false,
+                  );
+                } catch (e) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(e.toString())));
+                } finally {
+                  if (context.mounted) {
+                    setState(() => _isLoading = false);
+                  }
+                }
               },
             ),
           ],

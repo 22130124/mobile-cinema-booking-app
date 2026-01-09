@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/services/auth_service.dart';
+import 'package:frontend/services/auth/auth_service.dart';
 import '../../widgets/auth/custom_button.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import 'otp_screen.dart';
