@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import nlu.fit.backend.dto.movie.MovieResponse;
 import nlu.fit.backend.model.Movie;
 import nlu.fit.backend.repository.MovieRepository;
+import nlu.fit.backend.repository.TrailerRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 public class MovieService {
     
     private final MovieRepository movieRepository;
+    private final TrailerRepository trailerRepository;
 
     //Lấy tất cả phim
     public List<MovieResponse> getAllMovies() {
@@ -83,7 +85,15 @@ public class MovieService {
     public MovieResponse getMovieById(Long id) {
         Movie movie = movieRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy phim với ID: " + id));
-        return MovieResponse.fromEntity(movie);
+        String trailerUrl = trailerRepository.findFirstByMovieId(movie.getId())
+                .map(trailer -> trailer.getYoutubeVideoId())
+                .map(String::trim)
+                .filter(value -> !value.isEmpty())
+                .map(value -> value.startsWith("http")
+                        ? value
+                        : "https://www.youtube.com/watch?v=" + value)
+                .orElse(null);
+        return MovieResponse.fromEntity(movie, trailerUrl);
     }
 }
 

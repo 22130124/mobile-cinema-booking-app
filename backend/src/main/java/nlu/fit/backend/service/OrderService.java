@@ -51,7 +51,7 @@ public class OrderService {
 
             boolean isSold = ticketRepository.existsByShowTimeIdAndSeatIdAndStatus(input.showTimeId(), seatId, (byte) 1);
 
-            boolean isHeld = seatHoldRepository.existsByShowtimeIdAndSeatIdAndExpiresAt(
+            boolean isHeld = seatHoldRepository.existsByShowtimeIdAndSeatIdAndExpiresAtAfter(
                     input.showTimeId(), seatId, LocalDateTime.now());
 
             return isSold || isHeld;
@@ -128,7 +128,7 @@ public class OrderService {
                             showTime.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")),
                             showTime.getRoom().getCinema().getName(),
                             seatsName,
-                            item.getTotalTickets(),
+                            item.getTotalPrice() == null ? BigDecimal.ZERO : item.getTotalPrice(),
                             item.getStatus(),
                             item.getQrCodeData(),
                             showTimeDto,

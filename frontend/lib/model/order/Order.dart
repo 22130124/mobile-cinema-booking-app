@@ -31,10 +31,8 @@ class OrderHistoryItem {
       time: json['time'] ?? "",
       cinemaName: json['cinema'] ?? "",
       seats: json['seats'] ?? "",
-      amount: (json['amount'] is int)
-          ? (json['amount'] as int).toDouble()
-          : (json['amount'] as double),
-      status: json['status'] ?? "",
+      amount: _parseAmount(json['amount']),
+      status: json['status'] ?? 0,
       qrData: json['qrData'] ?? "",
     );
   }
@@ -57,7 +55,7 @@ class Ticket {
 class OrderDetail {
   final String id;
   final String qrData;
-  final int amount;
+  final double amount;
   final String movieTitle;
   final String cinemaName;
   final String dateTime;
@@ -82,7 +80,7 @@ class OrderDetail {
     return OrderDetail(
       id: json['id'] ?? "",
       qrData: json['qrData'] ?? "",
-      amount: json['amount'] ?? 0,
+      amount: _parseAmount(json['amount']),
 
       movieTitle: json['title'] ?? "Unknown Movie",
       cinemaName: json['cinema'] ?? "",
@@ -91,4 +89,13 @@ class OrderDetail {
       tickets: ticketsObjs,
     );
   }
+}
+
+double _parseAmount(dynamic value) {
+  if (value == null) return 0;
+  if (value is int) return value.toDouble();
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0;
+  return 0;
 }

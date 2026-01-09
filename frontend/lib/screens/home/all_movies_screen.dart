@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/app_colors.dart';
 import '../../model/movie_model.dart';
-import '../../widgets/home/movie_card.dart';
+import '../movie_details/movie_details_screen.dart';
 
 /// Màn hình hiển thị tất cả phim, Dùng cho nút "Xem tất cả" ở các section trong HomeScreen
 class AllMoviesScreen extends StatelessWidget {
@@ -87,16 +87,27 @@ class AllMoviesScreen extends StatelessWidget {
         ),
         itemCount: movies.length,
         itemBuilder: (context, index) {
-          return _buildGridMovieCard(movies[index]);
+          return _buildGridMovieCard(context, movies[index]);
         },
       ),
     );
   }
 
-  Widget _buildGridMovieCard(Movie movie) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+  Widget _buildGridMovieCard(BuildContext context, Movie movie) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MovieDetailScreen(
+              movieId: movie.id.toString(),
+            ),
+          ),
+        );
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
         // Poster
         Expanded(
           child: Container(
@@ -104,7 +115,7 @@ class AllMoviesScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
+                  color: Colors.black.withAlpha((0.4 * 255).round()),
                   spreadRadius: 1,
                   blurRadius: 8,
                   offset: Offset(0, 4),
@@ -179,7 +190,8 @@ class AllMoviesScreen extends StatelessWidget {
             ),
           ],
         ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -205,7 +217,7 @@ class AllMoviesScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.9),
+        color: color.withAlpha((0.9 * 255).round()),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
