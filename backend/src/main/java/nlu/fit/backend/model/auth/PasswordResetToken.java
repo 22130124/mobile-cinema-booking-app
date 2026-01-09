@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 public class PasswordResetToken {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
     private String email;
     private String token;
     private LocalDateTime expiredAt;
