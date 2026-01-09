@@ -1,11 +1,13 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:frontend/model/order/OrderRequest.dart';
 import 'package:frontend/screens/payment/payment_success_screen.dart';
 import 'package:frontend/services/order/order_service.dart';
+import 'package:frontend/storage/jwt_token_storage.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class CreateOrder extends StatefulWidget {
@@ -30,9 +32,14 @@ class _CreateOrderState extends State<CreateOrder> {
       Create a sample order request
       Check duplicate SeatIDs in Database before creating order 
       */
+      final userId = await JwtTokenStorage.getUserId();
+      if (userId == null) {
+        print("Vui lòng đăng nhập trước khi tạo đơn");
+        return;
+      }
       final request = OrderRequest(
         showTimeId: 2,
-        userId: 2,
+        userId: userId,
         seatIds: [5],
         userInfor: UserInforRequest(
           userEmail: "john.doe@example.com",
@@ -48,7 +55,17 @@ class _CreateOrderState extends State<CreateOrder> {
         Then open payment URL in WebView or external browser
          */
         final response = await OrderService().createOrder(request);
-        final paymentData = await OrderService().createPaymentUrl(response.id);
+        String? client;
+        String? redirect;
+        if (kIsWeb) {
+          client = 'web';
+          redirect = '${Uri.base.origin}/#/payment-result';
+        }
+        final paymentData = await OrderService().createPaymentUrl(
+          response.id,
+          client: client,
+          redirect: redirect,
+        );
         final String paymentUrl = paymentData['paymentUrl']!;
         await openPaymentUrl(context, paymentUrl, response.id);
       } catch (e) {
@@ -87,13 +104,16 @@ class _CreateOrderState extends State<CreateOrder> {
 
     bool paymentCompleted = false;
 
-    // Try external browser first
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-        return;
-      }
-    } catch (_) {}
+    if (kIsWeb) {
+      try {
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+          return;
+        }
+      } catch (_) {}
+      print('Khong the mo trang thanh toan tren web');
+      return;
+    }
 
     final WebViewController controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)

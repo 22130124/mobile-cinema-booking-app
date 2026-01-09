@@ -27,4 +27,6 @@ public interface SeatHoldRepository extends JpaRepository<SeatHold,Long> {
     boolean existsByShowtimeIdAndSeatIdAndExpiresAtAfter(Long showtimeId, Long seatId, LocalDateTime expiresAtAfter);
 
     boolean existsByShowtimeIdAndSeatIdAndExpiresAt(Long showtimeId, Long seatId, LocalDateTime expiresAt);
+
+    List<SeatHold> findByShowtimeIdAndExpiresAtAfter(Long showtimeId, LocalDateTime expiresAtAfter);
 }
