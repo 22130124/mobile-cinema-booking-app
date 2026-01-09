@@ -31,9 +31,9 @@ class _CreateOrderState extends State<CreateOrder> {
       Check duplicate SeatIDs in Database before creating order 
       */
       final request = OrderRequest(
-        showTimeId: 2,
-        userId: 2,
-        seatIds: [5],
+        showTimeId: 1,
+        userId: 1,
+        seatIds: [1],
         userInfor: UserInforRequest(
           userEmail: "john.doe@example.com",
           userPhone: "1234567890",
