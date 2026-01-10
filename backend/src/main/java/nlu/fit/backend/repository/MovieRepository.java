@@ -1,38 +1,37 @@
 package nlu.fit.backend.repository;
 
 import nlu.fit.backend.model.Movie;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
+@Repository
 public interface MovieRepository extends JpaRepository<Movie, Long> {
 
-    // Logic: Lấy movie + genres (ManyToMany) cho API chi tiết.
-    // DISTINCT để tránh movie bị duplicate khi fetch join collection.
-    @Query("""
-        select distinct m
-        from Movie m
-        left join fetch m.genres
-        where m.id = :id
-    """)
-    Optional<Movie> findDetailById(@Param("id") Long id);
+    //Lấy phim đang chiếu (status = 1, is_special = 0)
+    @Query("SELECT m FROM Movie m WHERE m.status = 1 AND m.isSpecial = 0")
+    List<Movie> findNowShowingMovies();
 
-    // Logic: Phim liên quan = phim có chung ít nhất 1 thể loại với phim hiện tại.
-    @Query("""
-        select distinct m2
-        from Movie m2
-        join m2.genres g2
-        where g2.id in (
-            select g.id
-            from Movie m
-            join m.genres g
-            where m.id = :movieId
-        )
-        and m2.id <> :movieId
-    """)
-    List<Movie> findRelatedMovies(@Param("movieId") Long movieId, Pageable pageable);
+    //Lấy phim đặc biệt (status = 1, is_special = 1)
+    @Query("SELECT m FROM Movie m WHERE m.status = 1 AND m.isSpecial = 1")
+    List<Movie> findSpecialMovies();
+
+    //Lấy phim sắp chiếu (status = 2)
+    @Query("SELECT m FROM Movie m WHERE m.status = 2")
+    List<Movie> findComingSoonMovies();
+
+    //Lấy phim phổ biến (rating >= 4.0, đang chiếu hoặc đặc biệt)
+    @Query("SELECT m FROM Movie m WHERE m.rating >= 4.0 AND m.status = 1 ORDER BY m.rating DESC")
+    List<Movie> findPopularMovies();
+
+    //Tìm kiếm phim theo tên hoặc thể loại
+    @Query("SELECT DISTINCT m FROM Movie m LEFT JOIN m.genres g " +
+           "WHERE LOWER(m.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+           "OR LOWER(g.name) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    List<Movie> searchMovies(@Param("keyword") String keyword);
 }
+
+
