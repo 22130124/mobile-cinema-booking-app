@@ -7,7 +7,7 @@ import nlu.fit.backend.dto.movie_details.TrailerDto;
 import nlu.fit.backend.model.Genre;
 import nlu.fit.backend.model.Movie;
 import nlu.fit.backend.model.Trailer;
-import nlu.fit.backend.repository.MovieRepository;
+import nlu.fit.backend.repository.MovieDetailRepository;
 import nlu.fit.backend.repository.TrailerRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -20,7 +20,7 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class MovieDetailService {
 
-    private final MovieRepository movieRepository;
+    private final MovieDetailRepository movieRepository;
     private final TrailerRepository trailerRepository;
 
     public MovieDetailDto getMovieDetail(Long movieId) {
