@@ -167,7 +167,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 // Link icon Google
                 iconUrl:
                     "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
-                onTap: () {
+                onTapSync: () {
                   // TODO: Tích hợp Google Sign In
                   print("Nhấn nút Google");
                 },

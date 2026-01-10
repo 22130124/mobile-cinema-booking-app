@@ -3,19 +3,27 @@ import 'package:flutter/material.dart';
 class SocialButton extends StatelessWidget {
   final String text;
   final String iconUrl; // Đường dẫn ảnh logo
-  final VoidCallback onTap;
+  final VoidCallback? onTapSync;
+  final Future<void> Function()? onTapAsync;
+  final bool isLoading;
 
   const SocialButton({
     super.key,
     required this.text,
     required this.iconUrl,
-    required this.onTap,
+    this.onTapSync,
+    this.onTapAsync,
+    this.isLoading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: isLoading
+          ? null
+          : onTapAsync != null
+          ? () => onTapAsync!()
+          : onTapSync,
       borderRadius: BorderRadius.circular(30),
       child: Container(
         width: double.infinity,
@@ -24,7 +32,16 @@ class SocialButton extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(30),
         ),
-        child: Row(
+        child: isLoading
+            ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            color: Colors.black,
+            strokeWidth: 2,
+          ),
+        )
+            : Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Logo

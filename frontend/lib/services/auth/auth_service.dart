@@ -29,6 +29,26 @@ class AuthService {
     return LoginResponse.fromJson(data);
   }
 
+  // Đăng nhập bằng Google
+  Future<LoginResponse> loginWithGoogle(String idToken) async {
+    final url = Uri.parse('$baseUrl/auth/google-login');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"idToken": idToken}),
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+
+    final Map<String, dynamic> data = jsonDecode(response.body);
+    return LoginResponse.fromJson(data);
+  }
+
   // Đăng ký tài khoản
   Future<void> register(String email, String password) async {
     final url = Uri.parse('$baseUrl/auth/register');

@@ -15,13 +15,6 @@ import java.util.Map;
 public class AuthController {
     private final AuthService authService;
 
-    @GetMapping("/check")
-    public ResponseEntity<?> checkHealth() {
-        String result = authService.checkHealth();
-        Map<String, String> map = Map.of("result", result);
-        return ResponseEntity.ok(map);
-    }
-
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         authService.register(request);
@@ -31,6 +24,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/google-login")
+    public ResponseEntity<?> loginGoogle(@RequestBody GoogleLoginRequest request) {
+        LoginResponse response = authService.loginGoogle(request);
         return ResponseEntity.ok(response);
     }
 
