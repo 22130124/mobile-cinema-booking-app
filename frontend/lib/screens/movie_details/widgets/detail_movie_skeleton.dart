@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/config/app_colors.dart';
 
 class DetailMovieSkeleton extends StatelessWidget {
   const DetailMovieSkeleton({super.key});
@@ -10,7 +9,7 @@ class DetailMovieSkeleton extends StatelessWidget {
       height: height,
       margin: const EdgeInsets.symmetric(vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.grey.shade800,
         borderRadius: BorderRadius.circular(8),
       ),
     );
@@ -22,7 +21,7 @@ class DetailMovieSkeleton extends StatelessWidget {
       height: size,
       margin: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.grey.shade800,
         shape: BoxShape.circle,
       ),
     );
@@ -31,7 +30,7 @@ class DetailMovieSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.black,
       body: SingleChildScrollView(
         child: Column(
           children: [
@@ -39,7 +38,7 @@ class DetailMovieSkeleton extends StatelessWidget {
             Container(
               width: double.infinity,
               height: 400,
-              color: AppColors.backgroundCard,
+              color: Colors.grey.shade900,
             ),
             const SizedBox(height: 16),
             Padding(

@@ -74,4 +74,8 @@ public class Movie {
             inverseJoinColumns = @JoinColumn(name = "genre_id"))
     private List<Genre> genres;
 
+    @Column(name = "cast_image_urls", columnDefinition = "TEXT")
+    private String castImageUrls;
+
+
 }

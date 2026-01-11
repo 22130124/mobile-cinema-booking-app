@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';  // Thay vì dart:io
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:frontend/config/app_colors.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 class TrailerDialog extends StatefulWidget {
   final String videoId;
@@ -12,33 +12,83 @@ class TrailerDialog extends StatefulWidget {
 }
 
 class _TrailerDialogState extends State<TrailerDialog> {
-  late final WebViewController _controller;
+  YoutubePlayerController? _ytController;
 
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController();
-    if (!kIsWeb) {  // Sử dụng kIsWeb để kiểm tra platform web
-      _controller.setJavaScriptMode(JavaScriptMode.unrestricted);
+
+    // Web: mở ngoài bằng browser/app YouTube cho ổn định.
+    // Mobile (Android/iOS): phát inline bằng youtube_player_flutter.
+    if (!kIsWeb) {
+      _ytController = YoutubePlayerController(
+        initialVideoId: widget.videoId,
+        flags: const YoutubePlayerFlags(
+          autoPlay: true,
+          mute: false,
+          enableCaption: true,
+        ),
+      );
     }
-    _controller.loadRequest(Uri.parse('https://www.youtube.com/embed/${widget.videoId}?autoplay=1&rel=0'));
+  }
+
+  @override
+  void dispose() {
+    _ytController?.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final watchUrl = Uri.parse('https://www.youtube.com/watch?v=${widget.videoId}');
+
+    if (kIsWeb) {
+      return AlertDialog(
+        backgroundColor: Colors.black87,
+        title: const Text('Trailer', style: TextStyle(color: Colors.white)),
+        content: const Text(
+          'Trên web, trailer sẽ được mở ở tab mới để ổn định hơn.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await launchUrl(watchUrl, mode: LaunchMode.externalApplication);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Mở trailer'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Đóng'),
+          ),
+        ],
+      );
+    }
+
+    final controller = _ytController;
+    if (controller == null) {
+      return const SizedBox.shrink();
+    }
+
     return Dialog(
-      backgroundColor: AppColors.backgroundLight,
+      backgroundColor: Colors.black87,
       insetPadding: const EdgeInsets.all(16),
       child: AspectRatio(
         aspectRatio: 16 / 9,
         child: Stack(
           children: [
-            WebViewWidget(controller: _controller),
+            YoutubePlayer(
+              controller: controller,
+              showVideoProgressIndicator: true,
+              progressIndicatorColor: Colors.deepOrange,
+              onReady: () {},
+            ),
             Positioned(
               top: 8,
               right: 8,
               child: IconButton(
-                icon: const Icon(Icons.close, color: AppColors.textPrimary),
+                icon: const Icon(Icons.close, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
