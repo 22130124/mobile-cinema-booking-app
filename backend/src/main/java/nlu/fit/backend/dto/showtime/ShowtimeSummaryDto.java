@@ -8,6 +8,10 @@ public record ShowtimeSummaryDto(
         LocalDate showDate,
         LocalDateTime startTime,
         String roomName,
-        String cinemaName
+        Long cinemaId,
+        String cinemaName,
+        String cinemaAddress,
+        String cinemaCity,
+        String cinemaImageUrl
 ) {
 }

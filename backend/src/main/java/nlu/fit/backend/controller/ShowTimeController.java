@@ -4,6 +4,7 @@ import lombok.AllArgsConstructor;
 import nlu.fit.backend.dto.showtime.ShowtimeSeatDto;
 import nlu.fit.backend.dto.showtime.ShowtimeSeatResponse;
 import nlu.fit.backend.dto.showtime.ShowtimeSummaryDto;
+import nlu.fit.backend.model.Cinema;
 import nlu.fit.backend.model.Seat;
 import nlu.fit.backend.model.SeatHold;
 import nlu.fit.backend.model.Showtime;
@@ -36,13 +37,20 @@ public class ShowTimeController {
     public ResponseEntity<List<ShowtimeSummaryDto>> getShowtimes(@RequestParam Long movieId) {
         List<Showtime> showtimes = showTimeRepository.findByMovieIdOrderByShowDateAscStartTimeAsc(movieId);
         List<ShowtimeSummaryDto> result = showtimes.stream()
-                .map(showtime -> new ShowtimeSummaryDto(
-                        showtime.getId(),
-                        showtime.getShowDate(),
-                        showtime.getStartTime(),
-                        showtime.getRoom().getName(),
-                        showtime.getRoom().getCinema().getName()
-                ))
+                .map(showtime -> {
+                    Cinema cinema = showtime.getRoom().getCinema();
+                    return new ShowtimeSummaryDto(
+                            showtime.getId(),
+                            showtime.getShowDate(),
+                            showtime.getStartTime(),
+                            showtime.getRoom().getName(),
+                            cinema.getId(),
+                            cinema.getName(),
+                            cinema.getAddress(),
+                            cinema.getCity(),
+                            cinema.getImageUrl()
+                    );
+                })
                 .toList();
         return ResponseEntity.ok(result);
     }

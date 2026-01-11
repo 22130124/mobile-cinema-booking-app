@@ -21,7 +21,11 @@ class _ShowtimeOption {
   final DateTime showDate;
   final DateTime startTime;
   final String roomName;
+  final int? cinemaId;
   final String cinemaName;
+  final String cinemaAddress;
+  final String cinemaCity;
+  final String cinemaImageUrl;
 
   const _ShowtimeOption({
     required this.id,
@@ -29,6 +33,10 @@ class _ShowtimeOption {
     required this.startTime,
     required this.roomName,
     required this.cinemaName,
+    required this.cinemaId,
+    required this.cinemaAddress,
+    required this.cinemaCity,
+    required this.cinemaImageUrl,
   });
 
   factory _ShowtimeOption.fromJson(Map<String, dynamic> json) {
@@ -37,9 +45,45 @@ class _ShowtimeOption {
       showDate: DateTime.parse(json['showDate'] as String).toLocal(),
       startTime: DateTime.parse(json['startTime'] as String).toLocal(),
       roomName: json['roomName'] as String? ?? '',
+      cinemaId: (json['cinemaId'] as num?)?.toInt(),
       cinemaName: json['cinemaName'] as String? ?? '',
+      cinemaAddress: json['cinemaAddress'] as String? ?? '',
+      cinemaCity: json['cinemaCity'] as String? ?? '',
+      cinemaImageUrl: json['cinemaImageUrl'] as String? ?? '',
     );
   }
+}
+
+class _CinemaGroup {
+  final String key;
+  final int? cinemaId;
+  final String name;
+  final String address;
+  final String city;
+  final String imageUrl;
+  final List<_ShowtimeOption> showtimes;
+
+  const _CinemaGroup({
+    required this.key,
+    required this.cinemaId,
+    required this.name,
+    required this.address,
+    required this.city,
+    required this.imageUrl,
+    required this.showtimes,
+  });
+}
+
+class _CinemaTag {
+  final String label;
+  final Color textColor;
+  final Color backgroundColor;
+
+  const _CinemaTag({
+    required this.label,
+    required this.textColor,
+    required this.backgroundColor,
+  });
 }
 
 class BookingSeatSheet extends StatefulWidget {
@@ -60,7 +104,13 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
   // map 'row-col' -> backend seatId
   final Map<String, int> seatIdMap = {};
   final Map<int, Set<String>> _selectedSeatsByShowtime = {};
+  final Map<int, int> _availableSeatsByShowtime = {};
+  final Set<int> _loadingSeatCounts = {};
+  final Set<String> _favoriteCinemas = {};
+  String? _expandedCinemaKey;
 
+  static const String _locationLabelFallback = 'TP. H\u1ed3 Ch\u00ed Minh';
+  static const String _unknownCinemaLabel = 'R\u1ea1p ch\u01b0a r\u00f5';
   bool _isLoadingShowtimes = false;
   bool _isLoadingSeats = false;
   bool _isCreatingOrder = false;
@@ -132,14 +182,22 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
         _showtimes = showtimes;
         _selectedDate = nextDate;
         _selectedShowtimeId = nextShowtimeId;
+        _expandedCinemaKey = showtimes.isNotEmpty
+            ? _cinemaKeyForShowtime(showtimes.first)
+            : null;
         selectedSeats.clear();
         _selectedSeatsByShowtime.clear();
+        _availableSeatsByShowtime.clear();
+        _loadingSeatCounts.clear();
         seatIdMap.clear();
         seatLayout = [];
       });
 
       if (nextShowtimeId != null) {
         await _fetchSeatMap(showtimeId: nextShowtimeId);
+      }
+      if (_expandedCinemaKey != null) {
+        _prefetchSeatCountsForCinema(_expandedCinemaKey!);
       }
     } catch (e) {
       _showSnack('Failed to load showtimes');
@@ -187,6 +245,7 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
       seatIdMap.clear();
       selectedSeats.clear();
 
+      int availableCount = 0;
       for (final s in seats) {
         final seatId = (s['seatId'] as num?)?.toInt();
         final rowName = (s['rowName'] ?? 'A') as String;
@@ -203,6 +262,7 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
           selectedSeats.add('$r-$c');
         } else {
           layout[r][c] = 0;
+          availableCount++;
         }
       }
 
@@ -223,6 +283,7 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
       if (!mounted) return;
       setState(() {
         seatLayout = layout;
+        _availableSeatsByShowtime[sid] = availableCount;
       });
       _selectedSeatsByShowtime[sid] = Set<String>.from(selectedSeats);
     } catch (e) {
@@ -285,21 +346,27 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
     return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
-  String _weekdayLabel(int weekday) {
-    const labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    if (weekday < 1 || weekday > 7) return '';
-    return labels[weekday - 1];
-  }
-
-  String _showtimeSubtitle(_ShowtimeOption showtime) {
-    final parts = <String>[];
-    if (showtime.cinemaName.isNotEmpty) {
-      parts.add(showtime.cinemaName);
+  String _dayLabel(DateTime date) {
+    final now = DateTime.now();
+    if (_isSameDate(date, now)) return 'Hôm nay';
+    switch (date.weekday) {
+      case DateTime.monday:
+        return 'Thứ 2';
+      case DateTime.tuesday:
+        return 'Thứ 3';
+      case DateTime.wednesday:
+        return 'Thứ 4';
+      case DateTime.thursday:
+        return 'Thứ 5';
+      case DateTime.friday:
+        return 'Thứ 6';
+      case DateTime.saturday:
+        return 'Thứ 7';
+      case DateTime.sunday:
+        return 'C.Nhật';
+      default:
+        return '';
     }
-    if (showtime.roomName.isNotEmpty) {
-      parts.add(showtime.roomName);
-    }
-    return parts.join(' - ');
   }
 
   String _formatTime(DateTime time) {
@@ -307,6 +374,380 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
     final hour = local.hour.toString().padLeft(2, '0');
     final minute = local.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+
+  String _cinemaKeyForShowtime(_ShowtimeOption showtime) {
+    final id = showtime.cinemaId;
+    if (id != null && id > 0) return id.toString();
+    if (showtime.cinemaName.isNotEmpty) return showtime.cinemaName;
+    return 'unknown';
+  }
+
+  List<_CinemaGroup> get _cinemaGroupsForSelectedDate {
+    final list = _showtimesForSelectedDate;
+    final grouped = <String, List<_ShowtimeOption>>{};
+    for (final showtime in list) {
+      final key = _cinemaKeyForShowtime(showtime);
+      grouped.putIfAbsent(key, () => <_ShowtimeOption>[]).add(showtime);
+    }
+    return grouped.entries.map((entry) {
+      final items = List<_ShowtimeOption>.from(entry.value)
+        ..sort((a, b) => a.startTime.compareTo(b.startTime));
+      final first = items.first;
+      final name = first.cinemaName.isNotEmpty
+          ? first.cinemaName
+          : _unknownCinemaLabel;
+      return _CinemaGroup(
+        key: entry.key,
+        cinemaId: first.cinemaId,
+        name: name,
+        address: first.cinemaAddress,
+        city: first.cinemaCity,
+        imageUrl: first.cinemaImageUrl,
+        showtimes: items,
+      );
+    }).toList();
+  }
+
+  String _locationLabelForGroups(List<_CinemaGroup> groups) {
+    final cities = groups
+        .map((group) => group.city.trim())
+        .where((city) => city.isNotEmpty)
+        .toSet();
+    if (cities.length == 1) {
+      final city = cities.first;
+      if (city == 'H\u1ed3 Ch\u00ed Minh' || city == 'Ho Chi Minh') {
+        return _locationLabelFallback;
+      }
+      return city;
+    }
+    if (cities.isEmpty) return _locationLabelFallback;
+    return 'Nhi\u1ec1u khu v\u1ef1c';
+  }
+
+  String _extractDistrict(String address) {
+    if (address.isEmpty) return '';
+    final parts = address.split(',');
+    for (final part in parts) {
+      final trimmed = part.trim();
+      if (trimmed.contains('Qu\u1eadn') ||
+          trimmed.contains('Huy\u1ec7n') ||
+          trimmed.contains('Q.')) {
+        return trimmed;
+      }
+    }
+    return '';
+  }
+
+  String _locationLine(String address, String city) {
+    final district = _extractDistrict(address);
+    final parts = <String>[];
+    if (district.isNotEmpty) parts.add(district);
+    if (city.isNotEmpty) parts.add(city);
+    if (parts.isEmpty) return '';
+    return parts.join(' \u2022 ');
+  }
+
+  String _seatAvailabilityText(int? availableSeats) {
+    if (availableSeats == null) {
+      return 'C\u00f2n -- gh\u1ebf';
+    }
+    if (availableSeats <= 0) {
+      return 'H\u1ebft ch\u1ed7';
+    }
+    return 'C\u00f2n $availableSeats gh\u1ebf';
+  }
+
+  bool _isShowtimeSoldOut(int? availableSeats) {
+    return availableSeats != null && availableSeats <= 0;
+  }
+
+  void _toggleCinema(_CinemaGroup group) {
+    final isExpanded = _expandedCinemaKey == group.key;
+    setState(() {
+      _expandedCinemaKey = isExpanded ? null : group.key;
+    });
+    if (!isExpanded) {
+      _prefetchSeatCountsForShowtimes(group.showtimes);
+    }
+  }
+
+  void _toggleFavorite(String cinemaKey) {
+    setState(() {
+      if (_favoriteCinemas.contains(cinemaKey)) {
+        _favoriteCinemas.remove(cinemaKey);
+      } else {
+        _favoriteCinemas.add(cinemaKey);
+      }
+    });
+  }
+
+  void _prefetchSeatCountsForCinema(String cinemaKey) {
+    for (final group in _cinemaGroupsForSelectedDate) {
+      if (group.key == cinemaKey) {
+        _prefetchSeatCountsForShowtimes(group.showtimes);
+        break;
+      }
+    }
+  }
+
+  void _prefetchSeatCountsForShowtimes(List<_ShowtimeOption> showtimes) {
+    for (final showtime in showtimes) {
+      if (_availableSeatsByShowtime.containsKey(showtime.id)) continue;
+      _fetchShowtimeSeatCount(showtime.id);
+    }
+  }
+
+  Future<void> _fetchShowtimeSeatCount(int showtimeId) async {
+    if (_loadingSeatCounts.contains(showtimeId)) return;
+    _loadingSeatCounts.add(showtimeId);
+    final uid = widget.userId;
+    final url = Uri.parse('$BASE_URL/showtimes/$showtimeId/seats?userId=$uid');
+    try {
+      final res = await http.get(url);
+      if (res.statusCode != 200) return;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final seats = (data['seats'] as List<dynamic>?) ?? [];
+      int available = 0;
+      for (final seat in seats) {
+        final status = (seat['status'] as String?) ?? 'AVAILABLE';
+        if (status == 'AVAILABLE') {
+          available++;
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _availableSeatsByShowtime[showtimeId] = available;
+      });
+    } catch (e) {
+      // ignore
+    } finally {
+      _loadingSeatCounts.remove(showtimeId);
+    }
+  }
+
+  Widget _showtimeSection() {
+    final cinemaGroups = _cinemaGroupsForSelectedDate;
+    final locationLabel = _locationLabelForGroups(cinemaGroups);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'R\u1ea1p Phim (${cinemaGroups.length})',
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Spacer(),
+            const Icon(Icons.location_on, size: 14, color: AppColors.accent),
+            const SizedBox(width: 4),
+            Text(
+              locationLabel,
+              style: TextStyle(
+                color: AppColors.accent,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (cinemaGroups.isEmpty)
+          const Text(
+            'Kh\u00f4ng c\u00f3 su\u1ea5t chi\u1ebfu',
+            style: TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        ...cinemaGroups.map(_buildCinemaCard),
+      ],
+    );
+  }
+
+  Widget _buildCinemaCard(_CinemaGroup group) {
+    final isExpanded = _expandedCinemaKey == group.key;
+    final isFavorite = _favoriteCinemas.contains(group.key);
+    final showtimeCount = group.showtimes.length;
+    final locationLine = _locationLine(group.address, group.city);
+    final descriptionLine = group.address;
+    return GestureDetector(
+      onTap: () => _toggleCinema(group),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.backgroundCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.35),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCinemaAvatar(group.imageUrl, group.name),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        group.name,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      if (locationLine.isNotEmpty)
+                        Text(
+                          locationLine,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (!isExpanded)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2, right: 6),
+                    child: Text(
+                      '$showtimeCount su\u1ea5t chi\u1ebfu',
+                      style: const TextStyle(
+                        color: AppColors.accent,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                IconButton(
+                  onPressed: () => _toggleFavorite(group.key),
+                  icon: Icon(
+                    isFavorite ? Icons.favorite : Icons.favorite_border,
+                    color: isFavorite ? AppColors.accent : AppColors.textHint,
+                    size: 20,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+                IconButton(
+                  onPressed: () => _toggleCinema(group),
+                  icon: Icon(
+                    isExpanded
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    color: AppColors.textHint,
+                    size: 22,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints:
+                      const BoxConstraints(minWidth: 32, minHeight: 32),
+                ),
+              ],
+            ),
+            if (descriptionLine.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              Text(
+                descriptionLine,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textHint,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+            if (isExpanded) ...[
+              const SizedBox(height: 10),
+              _buildShowtimeGrid(group.showtimes),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCinemaAvatar(String imageUrl, String cinemaName) {
+    final trimmed = cinemaName.trim();
+    final initial = trimmed.isNotEmpty ? trimmed[0].toUpperCase() : '?';
+    final fallback = Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+    if (imageUrl.isEmpty) return fallback;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Image.network(
+        imageUrl,
+        width: 40,
+        height: 40,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => fallback,
+      ),
+    );
+  }
+
+  Widget _buildShowtimeGrid(List<_ShowtimeOption> showtimes) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = 10.0;
+        final itemWidth = (constraints.maxWidth - spacing * 2) / 3;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: showtimes
+              .map((showtime) {
+                final availableSeats = _availableSeatsByShowtime[showtime.id];
+                final isSoldOut = _isShowtimeSoldOut(availableSeats);
+                return SizedBox(
+                  width: itemWidth,
+                  child: TimeOption(
+                    time: _formatTime(showtime.startTime),
+                    subtitle: _seatAvailabilityText(availableSeats),
+                    isSelected: _selectedShowtimeId == showtime.id,
+                    isDisabled: isSoldOut,
+                    onTap: isSoldOut ? null : () => _selectShowtime(showtime),
+                  ),
+                );
+              })
+              .toList(),
+        );
+      },
+    );
   }
 
   void _selectDate(DateTime date) {
@@ -324,11 +765,13 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
     setState(() {
       _selectedDate = date;
       _selectedShowtimeId = next.id;
+      _expandedCinemaKey = _cinemaKeyForShowtime(next);
       selectedSeats.clear();
       seatIdMap.clear();
       seatLayout = [];
     });
     _fetchSeatMap(showtimeId: next.id, carrySelection: previousSelection);
+    _prefetchSeatCountsForCinema(_cinemaKeyForShowtime(next));
   }
 
   void _selectShowtime(_ShowtimeOption showtime) {
@@ -346,11 +789,13 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
     setState(() {
       _selectedDate = nextDate;
       _selectedShowtimeId = showtime.id;
+      _expandedCinemaKey = _cinemaKeyForShowtime(showtime);
       selectedSeats.clear();
       seatIdMap.clear();
       seatLayout = [];
     });
     _fetchSeatMap(showtimeId: showtime.id, carrySelection: previousSelection);
+    _prefetchSeatCountsForCinema(_cinemaKeyForShowtime(showtime));
   }
 
   Widget _seatMapSection() {
@@ -433,7 +878,7 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
                                   child: DateOption(
                                     day: date.day,
                                     month: date.month,
-                                    dayName: _weekdayLabel(date.weekday),
+                                    dayName: _dayLabel(date),
                                     isSelected: _selectedDate != null &&
                                         _isSameDate(_selectedDate!, date),
                                     onTap: () => _selectDate(date),
@@ -446,33 +891,7 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
                     ),
 
                     const SizedBox(height: 24),
-                    const Text(
-                      'Chọn Giờ',
-                      style: TextStyle(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: _showtimesForSelectedDate
-                            .map(
-                              (showtime) => Padding(
-                                padding: const EdgeInsets.only(right: 12),
-                                child: TimeOption(
-                                  time: _formatTime(showtime.startTime),
-                                  subtitle: _showtimeSubtitle(showtime),
-                                  isSelected: _selectedShowtimeId == showtime.id,
-                                  onTap: () => _selectShowtime(showtime),
-                                ),
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ),
+                    _showtimeSection(),
 
                     const SizedBox(height: 32),
                     _totalAndBuy(),
