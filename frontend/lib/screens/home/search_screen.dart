@@ -3,6 +3,8 @@ import 'dart:async';
 import '../../config/app_colors.dart';
 import '../../model/movie_model.dart';
 import '../../services/movie_service.dart';
+import '../movie_details/movie_details_screen.dart';
+
 
 class SearchScreen extends StatefulWidget {
   final List<Movie> movies;
@@ -251,7 +253,7 @@ class _SearchScreenState extends State<SearchScreen> {
       ),
       child: InkWell(
         onTap: () {
-          // TODO: Navigate to movie detail
+          _openMovieDetail(movie);
         },
         borderRadius: BorderRadius.circular(12),
         child: Row(
@@ -382,4 +384,17 @@ class _SearchScreenState extends State<SearchScreen> {
     _focusNode.dispose();
     super.dispose();
   }
+
+  void _openMovieDetail(Movie movie) {
+    FocusScope.of(context).unfocus(); // tắt bàn phím
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MovieDetailScreen(movieId: movie.id.toString()),
+      ),
+    );
+  }
+
 }
+
+

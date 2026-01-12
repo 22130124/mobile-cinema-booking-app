@@ -10,6 +10,7 @@ import 'widgets/movie_info.dart';
 import 'widgets/cast_list.dart';
 import 'widgets/detail_movie_skeleton.dart';
 import 'widgets/related_movies_list.dart';
+import '../home/home_screen.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   final String? movieId;
@@ -72,6 +73,20 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     }
   }
 
+  // CHỈ THÊM MỚI: pop 1 màn, nếu không pop được thì về Home
+  Future<void> _handleBack() async {
+    final popped = await Navigator.maybePop(context);
+    if (!popped && mounted) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (_) => HomeScreen(),
+        ),
+        (route) => false,
+      );
+    }
+  }
+
   List<ActorVm> _mapActors(MovieDetailDto d) {
     final actorNames = (d.cast ?? '')
         .split(',')
@@ -129,8 +144,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.red, size: 30),
-          onPressed: () => Navigator.pop(context),
+          // CHỈ ĐỔI ICON: từ close -> arrow_back
+          icon: const Icon(Icons.arrow_back),
+          color: Colors.red,
+          iconSize: 30,
+          // CHỈ ĐỔI LOGIC: pop 1 màn, không pop được thì về Home
+          onPressed: _handleBack,
         ),
       ),
       body: SingleChildScrollView(
@@ -145,19 +164,21 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   style: const TextStyle(color: Colors.redAccent),
                 ),
               ),
-
             if (detail != null) ...[
               MoviePoster(imageUrl: _pickHeroImage(detail!)),
               MovieInfo(
                 detail: detail!,
                 trailerUrl: _firstTrailerUrl(trailers),
               ),
-
               const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
                   'Nội dung phim',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Padding(
@@ -167,16 +188,18 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   style: const TextStyle(color: Colors.white70),
                 ),
               ),
-
               const Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Text(
                   'Diễn viên',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               CastList(actors: _mapActors(detail!)),
-
               RelatedMoviesList(
                 movies: related,
                 onTap: (m) {
@@ -184,17 +207,17 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => MovieDetailScreen(movieId: nextId.toString()),
+                      builder: (_) =>
+                          MovieDetailScreen(movieId: nextId.toString()),
                     ),
                   );
                 },
               ),
-
               const SizedBox(height: 20),
             ] else ...[
               // detail == null nhưng có errorMessage => show placeholder
               const SizedBox(height: 180),
-              Center(
+              const Center(
                 child: Text(
                   'Không có dữ liệu phim.',
                   style: TextStyle(color: Colors.white70),
@@ -212,7 +235,8 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.deepOrange,
             minimumSize: const Size.fromHeight(50),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
           ),
           child: const Text(
             'Đặt Ghế',
