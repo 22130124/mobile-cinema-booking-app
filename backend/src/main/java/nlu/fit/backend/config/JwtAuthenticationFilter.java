@@ -25,47 +25,48 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private String jwtSecret;
 
     @Override
-    protected void doFilterInternal(@NonNull HttpServletRequest request,
-                                    @NonNull HttpServletResponse response,
-                                    @NonNull FilterChain filterChain) throws ServletException, IOException {
-        // Lấy header Authorization từ request
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain) throws ServletException, IOException {
+
         String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
-        // Nếu header không có hoặc không bắt đầu bằng "Bearer ", bỏ qua filter này
+        // Không có Bearer => cho đi tiếp để các rule permitAll hoạt động bình thường
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        String token = authHeader.substring(7);
+
         try {
-            // Giải mã JWT từ header, kiểm tra chữ ký bằng jwtSecret
             Claims claims = Jwts.parser()
                     .setSigningKey(jwtSecret.getBytes())
                     .build()
-                    .parseSignedClaims(authHeader.substring(7))
+                    .parseSignedClaims(token)
                     .getPayload();
 
-            // Lấy thông tin email và role từ JWT
             String email = claims.getSubject();
-            String role = claims.get("role", String.class);
+            String role  = claims.get("role", String.class);
 
-            // Tạo đối tượng Authentication để lưu thông tin người dùng vào SecurityContext
             var auth = new UsernamePasswordAuthenticationToken(
                     email,
                     null,
                     List.of(new SimpleGrantedAuthority("ROLE_" + role))
             );
 
-            // Lưu Authentication vào SecurityContext, để Spring Security biết người dùng đã đăng nhập
             SecurityContextHolder.getContext().setAuthentication(auth);
 
-            // Tiếp tục cho request đi qua các filter khác
-            filterChain.doFilter(request, response);
-
         } catch (Exception e) {
-            // Nếu JWT không hợp lệ, trả về 401 Unauthorized
+            // Chỉ JWT fail mới trả 401, và phải dừng request ngay
+            SecurityContextHolder.clearContext();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return;
         }
+
+        // Quan trọng: gọi chain ở ngoài try-catch để lỗi controller không bị biến thành 401
+        filterChain.doFilter(request, response);
     }
 }
+
 
