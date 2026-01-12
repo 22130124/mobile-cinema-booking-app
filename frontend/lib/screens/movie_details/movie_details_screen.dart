@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../config/app_colors.dart';
+
 import '../../services/movie_details/movie_api_service.dart';
 import '../../model/movie_details/movie_detail_dto.dart';
 import '../../model/movie_details/trailer_dto.dart';
 import '../../model/movie_details/movie_summary_dto.dart';
+import '../../storage/jwt_token_storage.dart';
 
+import 'booking_seat_sheet.dart';
 import 'widgets/movie_poster.dart';
 import 'widgets/movie_info.dart';
 import 'widgets/cast_list.dart';
@@ -115,6 +119,34 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     return 'https://www.youtube.com/watch?v=$id';
   }
 
+  void _showSnack(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  Future<void> _openBookingSheet() async {
+    final movieId = detail?.id ?? 0;
+    if (movieId <= 0) {
+      _showSnack('Invalid movie id.');
+      return;
+    }
+
+    final userId = await JwtTokenStorage.getUserId();
+    if (!mounted) return;
+    if (userId == null) {
+      _showSnack('Please log in to book seats.');
+      return;
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => BookingSeatSheet(movieId: movieId, userId: userId),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final id = int.tryParse(widget.movieId ?? '') ?? 0;
@@ -124,12 +156,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.red, size: 30),
+          icon: const Icon(Icons.close, color: AppColors.textPrimary, size: 30),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -142,7 +174,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   'Lỗi tải dữ liệu: $errorMessage',
-                  style: const TextStyle(color: Colors.redAccent),
+                  style: const TextStyle(color: AppColors.error),
                 ),
               ),
 
@@ -157,14 +189,18 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                 padding: EdgeInsets.all(16.0),
                 child: Text(
                   'Nội dung phim',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Text(
                   (detail!.description ?? '').trim(),
-                  style: const TextStyle(color: Colors.white70),
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
               ),
 
@@ -172,7 +208,11 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
                 padding: EdgeInsets.all(16.0),
                 child: Text(
                   'Diễn viên',
-                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               CastList(actors: _mapActors(detail!)),
@@ -197,7 +237,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
               Center(
                 child: Text(
                   'Không có dữ liệu phim.',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: AppColors.textSecondary),
                 ),
               ),
               const SizedBox(height: 180),
@@ -208,9 +248,12 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 16),
         child: ElevatedButton(
-          onPressed: detail == null ? null : () {},
+          onPressed: detail == null ? null : _openBookingSheet,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepOrange,
+            backgroundColor: AppColors.accent,
+            foregroundColor: Colors.black,
+            disabledBackgroundColor: AppColors.surface,
+            disabledForegroundColor: AppColors.textHint,
             minimumSize: const Size.fromHeight(50),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
           ),

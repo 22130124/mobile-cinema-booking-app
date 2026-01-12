@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../config/app_colors.dart';
 import '../../../model/movie_details/movie_summary_dto.dart';
 
 class RelatedMoviesList extends StatelessWidget {
@@ -27,7 +29,7 @@ class RelatedMoviesList extends StatelessWidget {
             child: Text(
               'Phim liên quan',
               style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -64,11 +66,11 @@ class RelatedMoviesList extends StatelessWidget {
                                 (m.posterUrl ?? '').trim(),
                                 fit: BoxFit.cover,
                                 errorBuilder: (_, __, ___) => Container(
-                                  color: Colors.white10,
+                                  color: AppColors.surface,
                                   alignment: Alignment.center,
                                   child: const Icon(
                                     Icons.image_not_supported,
-                                    color: Colors.white54,
+                                    color: AppColors.textHint,
                                   ),
                                 ),
                               ),
@@ -77,7 +79,7 @@ class RelatedMoviesList extends StatelessWidget {
                           const SizedBox(height: 8),
                           Text(
                             m.title,
-                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),

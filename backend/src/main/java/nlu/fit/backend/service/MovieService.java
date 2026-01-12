@@ -81,20 +81,20 @@ public class MovieService {
                 .collect(Collectors.toList());
     }
 
-    //Lấy chi tiết phim theo ID
-    public MovieResponse getMovieById(Long id) {
-        Movie movie = movieRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy phim với ID: " + id));
-        String trailerUrl = trailerRepository.findFirstByMovieId(movie.getId())
-                .map(trailer -> trailer.getYoutubeVideoId())
-                .map(String::trim)
-                .filter(value -> !value.isEmpty())
-                .map(value -> value.startsWith("http")
-                        ? value
-                        : "https://www.youtube.com/watch?v=" + value)
-                .orElse(null);
-        return MovieResponse.fromEntity(movie, trailerUrl);
-    }
+//    //Lấy chi tiết phim theo ID
+//    public MovieResponse getMovieById(Long id) {
+//        Movie movie = movieRepository.findById(id)
+//                .orElseThrow(() -> new RuntimeException("Không tìm thấy phim với ID: " + id));
+//        String trailerUrl = trailerRepository.findFirstByMovieId(movie.getId())
+//                .map(trailer -> trailer.getYoutubeVideoId())
+//                .map(String::trim)
+//                .filter(value -> !value.isEmpty())
+//                .map(value -> value.startsWith("http")
+//                        ? value
+//                        : "https://www.youtube.com/watch?v=" + value)
+//                .orElse(null);
+//        return MovieResponse.fromEntity(movie, trailerUrl);
+//    }
 }
 
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../config/app_colors.dart';
+
 class ActorVm {
   final String name;
   final String role;
@@ -44,17 +46,17 @@ class CastList extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 35,
-                backgroundColor: Colors.grey.shade800,
+                backgroundColor: AppColors.surface,
                 child: ClipOval(
                   child: displayUrl.isEmpty
-                      ? const Icon(Icons.person, color: Colors.white70)
+                      ? const Icon(Icons.person, color: AppColors.textSecondary)
                       : Image.network(
                           displayUrl,
                           width: 70,
                           height: 70,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) =>
-                              const Icon(Icons.person, color: Colors.white70),
+                              const Icon(Icons.person, color: AppColors.textSecondary),
                         ),
                 ),
               ),
@@ -63,7 +65,7 @@ class CastList extends StatelessWidget {
                 width: 70,
                 child: Text(
                   name,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                  style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -73,7 +75,7 @@ class CastList extends StatelessWidget {
                 width: 70,
                 child: Text(
                   role,
-                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                  style: const TextStyle(color: AppColors.textHint, fontSize: 11),
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

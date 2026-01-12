@@ -4,7 +4,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-const bool kUseAdbReverse = false;
+const bool kUseAdbReverse = true;
 const String kAndroidHost = kUseAdbReverse ? '127.0.0.1' : '10.0.2.2';
 
 String getBaseUrl() {

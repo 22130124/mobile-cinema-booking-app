@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
+import '../../../config/app_colors.dart';
+
 class TrailerDialog extends StatefulWidget {
   final String videoId;
   const TrailerDialog({super.key, required this.videoId});
@@ -44,11 +46,11 @@ class _TrailerDialogState extends State<TrailerDialog> {
 
     if (kIsWeb) {
       return AlertDialog(
-        backgroundColor: Colors.black87,
-        title: const Text('Trailer', style: TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.backgroundLight,
+        title: const Text('Trailer', style: TextStyle(color: AppColors.textPrimary)),
         content: const Text(
           'Trên web, trailer sẽ được mở ở tab mới để ổn định hơn.',
-          style: TextStyle(color: Colors.white70),
+          style: TextStyle(color: AppColors.textSecondary),
         ),
         actions: [
           TextButton(
@@ -56,10 +58,12 @@ class _TrailerDialogState extends State<TrailerDialog> {
               await launchUrl(watchUrl, mode: LaunchMode.externalApplication);
               if (context.mounted) Navigator.pop(context);
             },
+            style: TextButton.styleFrom(foregroundColor: AppColors.accent),
             child: const Text('Mở trailer'),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: AppColors.accent),
             child: const Text('Đóng'),
           ),
         ],
@@ -72,7 +76,7 @@ class _TrailerDialogState extends State<TrailerDialog> {
     }
 
     return Dialog(
-      backgroundColor: Colors.black87,
+      backgroundColor: AppColors.backgroundLight,
       insetPadding: const EdgeInsets.all(16),
       child: AspectRatio(
         aspectRatio: 16 / 9,
@@ -81,14 +85,14 @@ class _TrailerDialogState extends State<TrailerDialog> {
             YoutubePlayer(
               controller: controller,
               showVideoProgressIndicator: true,
-              progressIndicatorColor: Colors.deepOrange,
+              progressIndicatorColor: AppColors.accent,
               onReady: () {},
             ),
             Positioned(
               top: 8,
               right: 8,
               child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white),
+                icon: const Icon(Icons.close, color: AppColors.textPrimary),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
