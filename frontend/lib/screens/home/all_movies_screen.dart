@@ -3,6 +3,8 @@ import '../../config/app_colors.dart';
 import '../../model/movie_model.dart';
 import '../../widgets/home/movie_card.dart';
 
+import '../movie_details/movie_details_screen.dart';
+
 /// Màn hình hiển thị tất cả phim, Dùng cho nút "Xem tất cả" ở các section trong HomeScreen
 class AllMoviesScreen extends StatelessWidget {
   final String title;
@@ -17,6 +19,16 @@ class AllMoviesScreen extends StatelessWidget {
     this.icon = Icons.movie,
     this.iconColor = Colors.white,
   });
+
+  
+  void _openMovieDetail(BuildContext context, Movie movie) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MovieDetailScreen(movieId: movie.id.toString()),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +58,7 @@ class AllMoviesScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: movies.isEmpty
-          ? _buildEmptyState()
-          : _buildMovieGrid(),
+      body: movies.isEmpty ? _buildEmptyState() : _buildMovieGrid(context),
     );
   }
 
@@ -75,7 +85,8 @@ class AllMoviesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMovieGrid() {
+  
+  Widget _buildMovieGrid(BuildContext context) {
     return Padding(
       padding: EdgeInsets.all(16),
       child: GridView.builder(
@@ -87,99 +98,105 @@ class AllMoviesScreen extends StatelessWidget {
         ),
         itemCount: movies.length,
         itemBuilder: (context, index) {
-          return _buildGridMovieCard(movies[index]);
+          return _buildGridMovieCard(context, movies[index]);
         },
       ),
     );
   }
 
-  Widget _buildGridMovieCard(Movie movie) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Poster
-        Expanded(
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.4),
-                  spreadRadius: 1,
-                  blurRadius: 8,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.network(
-                    movie.posterUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: AppColors.surface,
-                      child: Icon(Icons.movie, color: AppColors.textHint, size: 40),
-                    ),
-                  ),
-                  // Status badge
-                  Positioned(
-                    top: 8,
-                    left: 8,
-                    child: _buildStatusBadge(movie.status),
+ 
+  Widget _buildGridMovieCard(BuildContext context, Movie movie) {
+    return InkWell(
+      onTap: () => _openMovieDetail(context, movie),
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Poster
+          Expanded(
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.4),
+                    spreadRadius: 1,
+                    blurRadius: 8,
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
-            ),
-          ),
-        ),
-        SizedBox(height: 10),
-        
-        // Title
-        Text(
-          movie.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-            height: 1.2,
-          ),
-        ),
-        SizedBox(height: 6),
-        
-        // Rating & Duration
-        Row(
-          children: [
-            Icon(Icons.star, color: AppColors.accent, size: 14),
-            SizedBox(width: 4),
-            Text(
-              movie.rating.toString(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            SizedBox(width: 12),
-            Icon(Icons.access_time, color: AppColors.textSecondary, size: 12),
-            SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                '${movie.duration} phút',
-                style: TextStyle(
-                  fontSize: 11,
-                  color: AppColors.textSecondary,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.network(
+                      movie.posterUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: AppColors.surface,
+                        child:
+                            Icon(Icons.movie, color: AppColors.textHint, size: 40),
+                      ),
+                    ),
+                    // Status badge
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: _buildStatusBadge(movie.status),
+                    ),
+                  ],
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ],
-        ),
-      ],
+          ),
+          SizedBox(height: 10),
+
+          // Title
+          Text(
+            movie.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              height: 1.2,
+            ),
+          ),
+          SizedBox(height: 6),
+
+          // Rating & Duration
+          Row(
+            children: [
+              Icon(Icons.star, color: AppColors.accent, size: 14),
+              SizedBox(width: 4),
+              Text(
+                movie.rating.toString(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              SizedBox(width: 12),
+              Icon(Icons.access_time, color: AppColors.textSecondary, size: 12),
+              SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  '${movie.duration} phút',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -219,5 +236,3 @@ class AllMoviesScreen extends StatelessWidget {
     );
   }
 }
-
-
