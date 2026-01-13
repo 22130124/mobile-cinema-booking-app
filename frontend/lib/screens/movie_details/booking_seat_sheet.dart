@@ -14,7 +14,7 @@ import '../../services/order/order_service.dart';
 import '../payment/payment_success_screen.dart';
 import 'widgets/bookings/date_time_option.dart';
 import 'widgets/bookings/seat_map.dart';
-import 'widgets/bookings/seat_utils.dart';
+import '../../utils/seat_utils.dart';
 
 class _ShowtimeOption {
   final int id;
@@ -74,18 +74,6 @@ class _CinemaGroup {
   });
 }
 
-class _CinemaTag {
-  final String label;
-  final Color textColor;
-  final Color backgroundColor;
-
-  const _CinemaTag({
-    required this.label,
-    required this.textColor,
-    required this.backgroundColor,
-  });
-}
-
 class BookingSeatSheet extends StatefulWidget {
   final int movieId;
   final int userId;
@@ -118,13 +106,25 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
   DateTime? _selectedDate;
   int? _selectedShowtimeId;
 
-  void toggleSeat(int row, int col) {
+  Future<void> toggleSeat(int row, int col) async {
     if (seatLayout.isEmpty) return;
     if (seatLayout[row][col] == 1) return; // booked or held by others
 
+    final seatKey = '$row-$col';
+    final seatId = seatIdMap[seatKey];
+    if (seatId == null) {
+      _showSnack('Khong tim thay seatId tuong ung');
+      return;
+    }
+
+    final isSelected = selectedSeats.contains(seatKey);
+    final ok = isSelected
+        ? await _releaseSelectedSeats([seatId])
+        : await _holdSelectedSeats([seatId]);
+    if (!ok || !mounted) return;
+
     setState(() {
-      final seatKey = '$row-$col';
-      if (selectedSeats.contains(seatKey)) {
+      if (isSelected) {
         selectedSeats.remove(seatKey);
         seatLayout[row][col] = 0;
       } else {
@@ -1205,28 +1205,62 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
     }
   }
 
-  Future<void> _holdSelectedSeats() async {
-    if (selectedSeats.isEmpty) return _showSnack('Chưa chọn ghế');
+  Future<bool> _holdSelectedSeats(List<int> seatIds) async {
     final sid = _selectedShowtimeId;
-    if (sid == null) return _showSnack('Select a showtime first');
-    final uid = widget.userId;
-    final seatIds = selectedSeats.map((k) => seatIdMap[k]).whereType<int>().toList();
-    if (seatIds.isEmpty) return _showSnack('Không tìm thấy seatId tương ứng');
+    if (sid == null) {
+      _showSnack('Select a showtime first');
+      return false;
+    }
+    if (seatIds.isEmpty) {
+      _showSnack('Khong tim thay seatId tuong ung');
+      return false;
+    }
 
-    final url = Uri.parse('$BASE_URL/showtimes/$sid/holds');
+    final uid = widget.userId;
+    final url = Uri.parse('$BASE_URL/showtimes/$sid/holds/release');
     final body = jsonEncode({'userId': uid, 'seatIds': seatIds});
     try {
       final res = await http.post(url, headers: {'Content-Type': 'application/json'}, body: body);
       if (res.statusCode == 200) {
-        _showSnack('Giữ ghế thành công');
-        // refresh seat map to reflect held seats / expiresAt
-        await _fetchSeatMap();
-      } else {
-        _showSnack('Lỗi: ${res.statusCode}');
-        await _fetchSeatMap();
+        return true;
       }
+      if (res.statusCode == 409) {
+        _showSnack('Ghe da duoc giu hoac dat');
+        await _fetchSeatMap();
+        return false;
+      }
+      _showSnack('Loi: ${res.statusCode}');
+      return false;
     } catch (e) {
-      _showSnack('Lỗi mạng');
+      _showSnack('Loi mang');
+      return false;
+    }
+  }
+
+  Future<bool> _releaseSelectedSeats(List<int> seatIds) async {
+    final sid = _selectedShowtimeId;
+    if (sid == null) {
+      _showSnack('Select a showtime first');
+      return false;
+    }
+    if (seatIds.isEmpty) {
+      _showSnack('Khong tim thay seatId tuong ung');
+      return false;
+    }
+
+    final uid = widget.userId;
+    final url = Uri.parse('$BASE_URL/showtimes/$sid/holds/release');
+    final body = jsonEncode({'userId': uid, 'seatIds': seatIds});
+    try {
+      final res = await http.post(url, headers: {'Content-Type': 'application/json'}, body: body);
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        return true;
+      }
+      _showSnack('Loi: ${res.statusCode}');
+      return false;
+    } catch (e) {
+      _showSnack('Loi mang');
+      return false;
     }
   }
 
