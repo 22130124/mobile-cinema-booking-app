@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/app_colors.dart';
+import '../../config/app_colors.dart';
 
 class DetailMovieSkeleton extends StatelessWidget {
   const DetailMovieSkeleton({super.key});

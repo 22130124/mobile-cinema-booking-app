@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/app_colors.dart';
-import '../../../model/movie_details/movie_summary_dto.dart';
+import '../../config/app_colors.dart';
+import '../../model/movie_details/movie_summary_dto.dart';
 
 class RelatedMoviesList extends StatelessWidget {
   final List<MovieSummaryDto> movies;

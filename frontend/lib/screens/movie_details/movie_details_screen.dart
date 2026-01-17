@@ -9,11 +9,11 @@ import '../../model/movie_details/movie_summary_dto.dart';
 import '../../storage/jwt_token_storage.dart';
 
 import 'booking_seat_sheet.dart';
-import 'widgets/movie_poster.dart';
-import 'widgets/movie_info.dart';
-import 'widgets/cast_list.dart';
-import 'widgets/detail_movie_skeleton.dart';
-import 'widgets/related_movies_list.dart';
+import '../../widgets/movie/movie_poster.dart';
+import '../../widgets/movie/movie_info.dart';
+import '../../widgets/movie/cast_list.dart';
+import '../../widgets/movie/detail_movie_skeleton.dart';
+import '../../widgets/movie/related_movies_list.dart';
 
 class MovieDetailScreen extends StatefulWidget {
   final String? movieId;
@@ -161,7 +161,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: AppColors.textPrimary, size: 30),
+          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary, size: 30),
           onPressed: () => Navigator.pop(context),
         ),
       ),

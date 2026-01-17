@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../config/app_colors.dart';
+import '../../config/app_colors.dart';
 
 class MoviePoster extends StatelessWidget {
   final String? imageUrl;
