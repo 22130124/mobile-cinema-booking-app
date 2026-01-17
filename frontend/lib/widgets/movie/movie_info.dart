@@ -60,7 +60,7 @@ class MovieInfo extends StatelessWidget {
             children: [
               const FaIcon(FontAwesomeIcons.star, color: AppColors.accent, size: 16),
               const SizedBox(width: 6),
-              Text('${detail.rating ?? 0.0}',
+              Text('${detail.rating}',
                   style: const TextStyle(color: AppColors.textPrimary, fontSize: 16)),
               const SizedBox(width: 16),
               Text(detail.releaseDate ?? '',

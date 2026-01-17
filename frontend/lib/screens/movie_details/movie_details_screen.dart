@@ -113,7 +113,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
     if (t.isEmpty) return null;
 
     // Nếu TrailerDto của bạn có field youtubeVideoId:
-    final id = (t.first.youtubeVideoId ?? '').trim();
+    final id = (t.first.youtubeVideoId).trim();
     if (id.isEmpty) return null;
 
     return 'https://www.youtube.com/watch?v=$id';
@@ -149,7 +149,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final id = int.tryParse(widget.movieId ?? '') ?? 0;
+    // final id = int.tryParse(widget.movieId ?? '') ?? 0;
 
     if (detail == null && errorMessage == null) {
       return const DetailMovieSkeleton();

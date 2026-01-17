@@ -19,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -68,6 +69,7 @@ public class ShowTimeController {
     ) {
         Showtime showtime = showTimeRepository.findById(showtimeId)
                 .orElseThrow(() -> new RuntimeException("Showtime not found"));
+        BigDecimal basePrice = showtime.getBasePrice();
 
         List<Seat> seats = seatRepository.findByRoomIdOrderByRowNameAscSeatNumberAsc(
                 showtime.getRoom().getId()
@@ -96,15 +98,19 @@ public class ShowTimeController {
                     status = (userId != null && holdUserId.equals(userId)) ? "MINE_HELD" : "HELD";
                 }
             }
+            BigDecimal multiplier = seat.getPriceMultiplier() == null ? BigDecimal.ONE : seat.getPriceMultiplier();
+            BigDecimal seatPrice = basePrice == null ? BigDecimal.ZERO : basePrice.multiply(multiplier);
             seatDtos.add(new ShowtimeSeatDto(
                     seat.getId(),
                     seat.getRowName(),
                     seat.getSeatNumber(),
-                    status
+                    status,
+                    getSeatTypeName(seat.getType()),
+                    seatPrice
             ));
         }
 
-        return ResponseEntity.ok(new ShowtimeSeatResponse(showtimeId, seatDtos));
+        return ResponseEntity.ok(new ShowtimeSeatResponse(showtimeId, basePrice, seatDtos));
     }
 
 
@@ -199,5 +205,16 @@ public class ShowTimeController {
             @RequestBody SeatHoldRequest request
     ) {
         return releaseSeats(showtimeId, request);
+    }
+
+    private String getSeatTypeName(Byte type) {
+        if (type == null) {
+            return "Standard";
+        }
+        return switch (type.intValue()) {
+            case 2 -> "VIP";
+            case 3 -> "Sweetbox";
+            default -> "Standard";
+        };
     }
 }

@@ -3,14 +3,14 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../config/api_config.dart';
 import '../../config/app_colors.dart';
+import '../../model/booking/booking_price_models.dart';
 import '../../model/order/OrderRequest.dart';
 import '../../services/order/order_service.dart';
 import '../../utils/seat_utils.dart';
+import '../../screens/payment/payment_flow.dart';
 import '../../screens/payment/payment_success_screen.dart';
 import '../../model/movie_details/booking_seat_models.dart';
 
@@ -25,12 +25,18 @@ class BookingSeatController extends ChangeNotifier {
   final int userId;
   final void Function(String message) showMessage;
 
-  static const int _pricePerSeat = 120000;
+  static const int _fallbackPricePerSeat = 120000;
+  static const String _fallbackSeatTypeName = 'Standard';
   static const String _unknownCinemaLabel = 'R\u1ea1p ch\u01b0a r\u00f5';
+  int? _defaultPricePerSeat;
+  int? _confirmedTotal;
+  int? _discountAmount;
 
   final Set<String> _selectedSeats = {};
   List<List<int>> _seatLayout = [];
   final Map<String, int> _seatIdMap = {};
+  final Map<String, int> _seatPriceMap = {};
+  final Map<String, String> _seatTypeMap = {};
   final Map<int, Set<String>> _selectedSeatsByShowtime = {};
   final Map<int, int> _availableSeatsByShowtime = {};
   final Set<int> _loadingSeatCounts = {};
@@ -56,7 +62,26 @@ class BookingSeatController extends ChangeNotifier {
   DateTime? get selectedDate => _selectedDate;
   int? get selectedShowtimeId => _selectedShowtimeId;
 
-  int get totalPrice => _selectedSeats.length * _pricePerSeat;
+  int get subtotalPrice => _calculateSubtotal(allowFallback: true) ?? 0;
+
+  int get discountAmount => _calculateDiscountAmount();
+
+  int get totalPrice {
+    final confirmed = _confirmedTotal;
+    if (confirmed != null) return confirmed;
+    final total = subtotalPrice - discountAmount;
+    return total < 0 ? 0 : total;
+  }
+
+  bool get isTotalEstimated {
+    if (_selectedSeats.isEmpty) return false;
+    if (_confirmedTotal != null) return false;
+    if (_calculateSeatTotal() != null) return false;
+    return _defaultPricePerSeat == null;
+  }
+
+  List<SeatTypeSummary> get seatTypeSummaries =>
+      _buildSeatTypeSummaries();
 
   bool get canCreateOrder =>
       _selectedSeats.isNotEmpty &&
@@ -163,6 +188,7 @@ class BookingSeatController extends ChangeNotifier {
     if (sid != null) {
       _selectedSeatsByShowtime[sid] = Set<String>.from(_selectedSeats);
     }
+    _clearConfirmedTotal();
     _notify();
   }
 
@@ -201,6 +227,11 @@ class BookingSeatController extends ChangeNotifier {
     _selectedSeats.clear();
     _seatIdMap.clear();
     _seatLayout = [];
+    _seatPriceMap.clear();
+    _seatTypeMap.clear();
+    _defaultPricePerSeat = null;
+    _discountAmount = null;
+    _clearConfirmedTotal();
     _notify();
     _fetchSeatMap(showtimeId: next.id, carrySelection: previousSelection);
     _prefetchSeatCountsForCinema(_cinemaKeyForShowtime(next));
@@ -225,6 +256,11 @@ class BookingSeatController extends ChangeNotifier {
     _selectedSeats.clear();
     _seatIdMap.clear();
     _seatLayout = [];
+    _seatPriceMap.clear();
+    _seatTypeMap.clear();
+    _defaultPricePerSeat = null;
+    _discountAmount = null;
+    _clearConfirmedTotal();
     _notify();
     _fetchSeatMap(showtimeId: showtime.id, carrySelection: previousSelection);
     _prefetchSeatCountsForCinema(_cinemaKeyForShowtime(showtime));
@@ -265,6 +301,13 @@ class BookingSeatController extends ChangeNotifier {
 
     try {
       final order = await OrderService().createOrder(request);
+      if (order.amount != null) {
+        _confirmedTotal = order.amount!.round();
+      }
+      if (order.discountAmount != null) {
+        _discountAmount = order.discountAmount!.round();
+      }
+      _notify();
       String? client;
       String? redirect;
       if (kIsWeb) {
@@ -281,7 +324,31 @@ class BookingSeatController extends ChangeNotifier {
         showMessage('Payment URL missing');
         return;
       }
-      await _openPaymentUrl(context, paymentUrl, order.id);
+      await openPaymentUrl(
+        context,
+        paymentUrl,
+        order.id,
+        onMessage: showMessage,
+        dialogStyle: const PaymentDialogStyle(
+          backgroundColor: AppColors.backgroundLight,
+          titleStyle: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+          closeIconColor: AppColors.textPrimary,
+        ),
+        canNavigate: () => !_disposed,
+        onSuccess: (successOrderId) {
+          if (_disposed) return;
+          final navigator = Navigator.of(context);
+          navigator.pop();
+          navigator.push(
+            MaterialPageRoute(
+              builder: (_) => PaymentSuccessScreen(orderId: successOrderId),
+            ),
+          );
+        },
+      );
     } catch (e) {
       showMessage('Order failed');
     } finally {
@@ -339,6 +406,11 @@ class BookingSeatController extends ChangeNotifier {
       _loadingSeatCounts.clear();
       _seatIdMap.clear();
       _seatLayout = [];
+      _seatPriceMap.clear();
+      _seatTypeMap.clear();
+      _defaultPricePerSeat = null;
+      _discountAmount = null;
+      _clearConfirmedTotal();
       _notify();
 
       if (nextShowtimeId != null) {
@@ -371,6 +443,23 @@ class BookingSeatController extends ChangeNotifier {
       }
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final seats = (data['seats'] as List<dynamic>?) ?? [];
+      _discountAmount = null;
+      final basePrice = _parseSeatPrice(
+        data['price'] ?? data['pricePerSeat'] ?? data['basePrice'],
+      );
+      if (basePrice != null) {
+        _defaultPricePerSeat = basePrice;
+      }
+      final discount = _parseSeatPrice(
+        data['discount'] ??
+            data['discountAmount'] ??
+            data['totalDiscount'] ??
+            data['promotionAmount'] ??
+            data['promotion'],
+      );
+      if (discount != null) {
+        _discountAmount = discount;
+      }
 
       int maxRow = 0;
       int maxCol = 0;
@@ -391,6 +480,9 @@ class BookingSeatController extends ChangeNotifier {
           : (carrySelection ?? <String>{});
       _seatIdMap.clear();
       _selectedSeats.clear();
+      _seatPriceMap.clear();
+      _seatTypeMap.clear();
+      _clearConfirmedTotal();
 
       int availableCount = 0;
       for (final s in seats) {
@@ -401,6 +493,22 @@ class BookingSeatController extends ChangeNotifier {
         final r = rowName.codeUnitAt(0) - 'A'.codeUnitAt(0);
         final c = seatNumber - 1;
         if (seatId != null) _seatIdMap['$r-$c'] = seatId;
+        final seatPrice = _parseSeatPrice(
+          s['price'] ?? s['seatPrice'] ?? s['ticketPrice'],
+        );
+        if (seatPrice != null) {
+          _seatPriceMap['$r-$c'] = seatPrice;
+        }
+        final seatTypeName = _parseSeatTypeName(
+          s['seatTypeName'] ??
+              s['seatType'] ??
+              s['typeName'] ??
+              s['ticketType'] ??
+              s['type'],
+        );
+        if (seatTypeName != null) {
+          _seatTypeMap['$r-$c'] = seatTypeName;
+        }
 
         if (status == 'BOOKED' || status == 'HELD') {
           layout[r][c] = 1;
@@ -504,14 +612,14 @@ class BookingSeatController extends ChangeNotifier {
         return true;
       }
       if (res.statusCode == 409) {
-        showMessage('Ghe da duoc giu hoac dat');
+        showMessage('Ghế đang được đặt');
         await _fetchSeatMap();
         return false;
       }
-      showMessage('Loi: ${res.statusCode}');
+      showMessage('Lỗi: ${res.statusCode}');
       return false;
     } catch (e) {
-      showMessage('Loi mang');
+      showMessage('Lỗi mạng');
       return false;
     }
   }
@@ -546,114 +654,113 @@ class BookingSeatController extends ChangeNotifier {
     }
   }
 
-  Future<void> _openPaymentUrl(
-    BuildContext context,
-    String paymentUrl,
-    String orderId,
-  ) async {
-    final url = paymentUrl.replaceAll(RegExp(r'\s+'), '');
-    final uri = Uri.tryParse(url);
-    if (uri == null) {
-      showMessage('Invalid payment URL');
-      return;
-    }
-
-    bool paymentCompleted = false;
-
-    if (kIsWeb) {
-      try {
-        if (await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-          return;
-        }
-      } catch (_) {}
-      showMessage('Khong the mo trang thanh toan tren web');
-      return;
-    }
-
-    final WebViewController controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onNavigationRequest: (NavigationRequest req) async {
-            final url = req.url;
-            if (url.startsWith('cinemapp://')) {
-              Navigator.of(context).pop();
-              try {
-                final uri = Uri.parse(url);
-                final resultOrderId =
-                    uri.queryParameters['orderId'] ??
-                        uri.queryParameters['vnp_TxnRef'];
-                final status = uri.queryParameters['status'] ??
-                    (uri.queryParameters['vnp_ResponseCode'] == '00'
-                        ? 'success'
-                        : 'fail');
-                if (status == 'success' && resultOrderId != null) {
-                  paymentCompleted = true;
-                  if (_disposed) return NavigationDecision.prevent;
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          PaymentSuccessScreen(orderId: resultOrderId),
-                    ),
-                  );
-                }
-              } catch (_) {}
-              return NavigationDecision.prevent;
-            }
-            return NavigationDecision.navigate;
-          },
-        ),
-      )
-      ..loadRequest(uri, headers: {'ngrok-skip-browser-warning': 'true'});
-
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) {
-        return Dialog(
-          insetPadding: const EdgeInsets.all(12),
-          backgroundColor: AppColors.backgroundLight,
-          child: SizedBox(
-            height: MediaQuery.of(ctx).size.height * 0.85,
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    const SizedBox(width: 8),
-                    const Text(
-                      'Payment',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon:
-                          const Icon(Icons.close, color: AppColors.textPrimary),
-                      onPressed: () async {
-                        await OrderService().deleteSeatHoldByUser(orderId);
-                        Navigator.of(ctx).pop();
-                      },
-                    ),
-                  ],
-                ),
-                Expanded(child: WebViewWidget(controller: controller)),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-
-    if (paymentCompleted && !_disposed) {
-      Navigator.of(context).pop();
-    }
-  }
-
   bool _isSameDate(DateTime a, DateTime b) {
     return a.year == b.year && a.month == b.month && a.day == b.day;
+  }
+
+  int get _effectivePricePerSeat =>
+      _defaultPricePerSeat ?? _fallbackPricePerSeat;
+
+  int? _calculateSubtotal({required bool allowFallback}) {
+    if (_selectedSeats.isEmpty) return 0;
+    final seatTotal = _calculateSeatTotal();
+    if (seatTotal != null) return seatTotal;
+    if (!allowFallback) {
+      if (_defaultPricePerSeat == null) return null;
+      return _selectedSeats.length * _defaultPricePerSeat!;
+    }
+    return _selectedSeats.length * _effectivePricePerSeat;
+  }
+
+  int _calculateDiscountAmount() {
+    if (_selectedSeats.isEmpty) return 0;
+    final explicit = _discountAmount;
+    if (explicit != null) return explicit;
+    final confirmed = _confirmedTotal;
+    if (confirmed == null) return 0;
+    final subtotal = _calculateSubtotal(allowFallback: false);
+    if (subtotal == null) return 0;
+    final diff = subtotal - confirmed;
+    return diff > 0 ? diff : 0;
+  }
+
+  List<SeatTypeSummary> _buildSeatTypeSummaries() {
+    if (_selectedSeats.isEmpty) return const [];
+    final summaryMap = <String, _SeatTypeAccumulator>{};
+    for (final seatKey in _selectedSeats) {
+      final typeName = _seatTypeMap[seatKey] ?? _fallbackSeatTypeName;
+      final price = _seatPriceMap[seatKey] ?? _effectivePricePerSeat;
+      final bucket =
+          summaryMap.putIfAbsent(typeName, () => _SeatTypeAccumulator());
+      bucket.count += 1;
+      bucket.total += price;
+      if (!bucket.unitPriceLocked) {
+        if (bucket.unitPrice == null) {
+          bucket.unitPrice = price;
+        } else if (bucket.unitPrice != price) {
+          bucket.unitPrice = null;
+          bucket.unitPriceLocked = true;
+        }
+      }
+    }
+    final result = <SeatTypeSummary>[];
+    for (final entry in summaryMap.entries) {
+      final bucket = entry.value;
+      result.add(
+        SeatTypeSummary(
+          typeName: entry.key,
+          count: bucket.count,
+          total: bucket.total,
+          unitPrice: bucket.unitPrice,
+        ),
+      );
+    }
+    result.sort((a, b) => a.typeName.compareTo(b.typeName));
+    return result;
+  }
+
+  int? _calculateSeatTotal() {
+    if (_selectedSeats.isEmpty) return 0;
+    int total = 0;
+    for (final seatKey in _selectedSeats) {
+      final seatPrice = _seatPriceMap[seatKey];
+      if (seatPrice == null) return null;
+      total += seatPrice;
+    }
+    return total;
+  }
+
+  String? _parseSeatTypeName(dynamic value) {
+    if (value == null) return null;
+    if (value is String) {
+      final trimmed = value.trim();
+      return trimmed.isEmpty ? null : trimmed;
+    }
+    if (value is num) {
+      return 'Type ${value.toInt()}';
+    }
+    if (value is Map<String, dynamic>) {
+      final name =
+          value['name'] ?? value['typeName'] ?? value['seatTypeName'];
+      if (name is String) {
+        final trimmed = name.trim();
+        return trimmed.isEmpty ? null : trimmed;
+      }
+    }
+    return null;
+  }
+
+  int? _parseSeatPrice(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is num) return value.round();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  void _clearConfirmedTotal() {
+    _confirmedTotal = null;
   }
 
   String _cinemaKeyForShowtime(ShowtimeOption showtime) {
@@ -667,4 +774,11 @@ class BookingSeatController extends ChangeNotifier {
     if (_disposed) return;
     notifyListeners();
   }
+}
+
+class _SeatTypeAccumulator {
+  int count = 0;
+  int total = 0;
+  int? unitPrice;
+  bool unitPriceLocked = false;
 }

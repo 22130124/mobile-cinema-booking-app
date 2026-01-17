@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../config/app_colors.dart';
+import '../../../model/booking/booking_price_models.dart';
 import 'date_time_option.dart';
 
 class BookingSeatLegend extends StatelessWidget {
@@ -50,13 +51,137 @@ class SelectedSeatsSummary extends StatelessWidget {
   }
 }
 
+class BookingPriceBreakdown extends StatelessWidget {
+  final List<SeatTypeSummary> seatTypes;
+  final int subtotal;
+  final int discount;
+  final int total;
+  final bool isEstimated;
+  final String Function(int value) formatPrice;
+
+  const BookingPriceBreakdown({
+    super.key,
+    required this.seatTypes,
+    required this.subtotal,
+    required this.discount,
+    required this.total,
+    required this.isEstimated,
+    required this.formatPrice,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final showSeatTypes = seatTypes.isNotEmpty;
+    final showDiscount = discount > 0;
+    final totalLabel = isEstimated ? 'Thanh tien (uoc tinh)' : 'Thanh tien';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.border.withAlpha((0.25 * 255).round()),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (showSeatTypes) ...[
+            ...seatTypes.map(
+              (seatType) {
+                final unitPrice = seatType.unitPrice;
+                final label = unitPrice == null
+                    ? '${seatType.typeName} x${seatType.count}'
+                    : '${seatType.typeName} x${seatType.count} @ ${formatPrice(unitPrice)}';
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: _PriceRow(
+                    label: label,
+                    value: '${formatPrice(seatType.total)} VND',
+                    labelStyle: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    valueStyle: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                );
+              },
+            ).toList(),
+            const SizedBox(height: 4),
+            Divider(
+              color: AppColors.border.withAlpha((0.4 * 255).round()),
+              height: 1,
+            ),
+            const SizedBox(height: 8),
+          ],
+          _PriceRow(
+            label: 'Tạm tính',
+            value: '${formatPrice(subtotal)} VND',
+            labelStyle: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            valueStyle: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          if (showDiscount) ...[
+            const SizedBox(height: 4),
+            _PriceRow(
+              label: 'Giảm giá',
+              value: '-${formatPrice(discount)} VND',
+              labelStyle: const TextStyle(
+                color: AppColors.accentLight,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+              valueStyle: const TextStyle(
+                color: AppColors.accentLight,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          const SizedBox(height: 6),
+          _PriceRow(
+            label: totalLabel,
+            value: '${formatPrice(total)} VND',
+            labelStyle: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+            valueStyle: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class TotalAndBuyBar extends StatelessWidget {
+  final String label;
   final String formattedTotal;
   final bool isEnabled;
   final VoidCallback onPressed;
 
   const TotalAndBuyBar({
     super.key,
+    required this.label,
     required this.formattedTotal,
     required this.isEnabled,
     required this.onPressed,
@@ -70,9 +195,9 @@ class TotalAndBuyBar extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Thành tiền',
-                style: TextStyle(
+              Text(
+                label,
+                style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -247,3 +372,43 @@ class _LegendItem extends StatelessWidget {
     );
   }
 }
+
+class _PriceRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final TextStyle? labelStyle;
+  final TextStyle? valueStyle;
+
+  const _PriceRow({
+    required this.label,
+    required this.value,
+    this.labelStyle,
+    this.valueStyle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final defaultStyle = const TextStyle(
+      color: AppColors.textSecondary,
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+    );
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: labelStyle ?? defaultStyle,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          value,
+          style: valueStyle ?? defaultStyle,
+        ),
+      ],
+    );
+  }
+}
+

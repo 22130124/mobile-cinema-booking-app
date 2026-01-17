@@ -106,8 +106,22 @@ class _BookingSeatSheetState extends State<BookingSeatSheet> {
                           onToggleFavorite: _controller.toggleFavorite,
                           onSelectShowtime: _controller.selectShowtime,
                         ),
+                        if (_controller.selectedSeats.isNotEmpty) ...[
+                          const SizedBox(height: 24),
+                          BookingPriceBreakdown(
+                            seatTypes: _controller.seatTypeSummaries,
+                            subtotal: _controller.subtotalPrice,
+                            discount: _controller.discountAmount,
+                            total: _controller.totalPrice,
+                            isEstimated: _controller.isTotalEstimated,
+                            formatPrice: _controller.formattedPrice,
+                          ),
+                        ],
                         const SizedBox(height: 32),
                         TotalAndBuyBar(
+                          label: _controller.isTotalEstimated
+                              ? 'Thành tiền (ước tính)'
+                              : 'Thành tiền',
                           formattedTotal: _controller
                               .formattedPrice(_controller.totalPrice),
                           isEnabled: _controller.canCreateOrder,
