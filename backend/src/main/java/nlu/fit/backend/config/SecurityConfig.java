@@ -33,6 +33,7 @@ public class SecurityConfig {
                         .requestMatchers("/auth/change-password").hasRole("USER")
                         .requestMatchers("/auth/**").permitAll() // api công khai
                         .requestMatchers("/api/movies/**").permitAll() // api phim công khai
+                        .requestMatchers("/api/cinemas/**").permitAll() 
                         .requestMatchers("/api/showtimes/**").permitAll()
                         .requestMatchers("/api/booking/**").permitAll()
                         .requestMatchers("/api/payment/**").permitAll()
