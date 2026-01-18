@@ -4,6 +4,7 @@ import 'package:frontend/models/user/update_user_request.dart';
 import 'package:frontend/screens/home/home_screen.dart';
 import 'package:frontend/services/user/user_service.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../services/upload/upload_service.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
 
@@ -20,28 +21,66 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
 
   String _gender = "male";
   File? _avatar;
+  String? _avatarUrl;
+  String? _avatarPublicId;
   bool _isLoading = false;
+  bool _isUploadingAvatar = false;
 
   final ImagePicker _picker = ImagePicker();
 
-// Hàm bất đồng bộ (async) để người dùng chọn ảnh đại diện (avatar) từ thư viện ảnh
+  // Hàm bất đồng bộ (async) để người dùng chọn ảnh đại diện (avatar) từ thư viện ảnh
   Future<void> _pickAvatar() async {
     // Hiển thị trình chọn ảnh (Image Picker) để người dùng chọn ảnh từ gallery
     // imageQuality: 80 có nghĩa là nén ảnh xuống 80% chất lượng để giảm dung lượng
     final XFile? picked = await _picker.pickImage(
       source: ImageSource.gallery, // Lấy ảnh từ thư viện ảnh của thiết bị
-      imageQuality: 80,           // Chất lượng ảnh sau khi nén (0-100)
+      imageQuality: 80, // Chất lượng ảnh sau khi nén (0-100)
     );
 
-    // Kiểm tra xem người dùng có chọn ảnh hay không
-    if (picked != null) {
-      // Nếu có ảnh được chọn, cập nhật state để hiển thị ảnh mới
-      setState(() {
-        _avatar = File(picked.path); // Lưu ảnh dưới dạng File từ đường dẫn của ảnh
-      });
+    // Nếu không chọn ảnh thì thoát
+    if (picked == null) return;
+
+    // Lấy ra file ảnh
+    final file = File(picked.path);
+
+    // Hiển thị ảnh ngay lập tức
+    setState(() {
+      _avatar = file;
+      _isUploadingAvatar = true;
+    });
+
+    try {
+      // Gọi API upload avatar
+      final result = await UploadService().uploadImageAvatar(file, 'avatar');
+
+      // Lưu URL avatar trả về từ server
+      _avatarUrl = result.secureUrl;
+      _avatarPublicId = result.publicId;
+
+      debugPrint("avatarUrl: $_avatarUrl");
+      debugPrint("avatarPublicId: $_avatarPublicId");
+
+      // Nếu context đã bị hủy thì không làm gì cả
+      if (!mounted) return;
+
+      // Hiển thị thông báo thành công
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Upload ảnh đại diện thành công')),
+      );
+    } catch (e) {
+      // Nếu context đã bị hủy thì không làm gì cả
+      if (!mounted) return;
+
+      // Hiển thị thông báo lỗi
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Upload ảnh thất bại: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingAvatar = false);
+      }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -71,14 +110,17 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                   CircleAvatar(
                     radius: 55,
                     backgroundColor: Colors.grey.shade800,
-                    backgroundImage:
-                    _avatar != null ? FileImage(_avatar!) : null,
-                    child: _avatar == null
+                    backgroundImage: _avatar != null
+                        ? FileImage(_avatar!)
+                        : null,
+                    child: _isUploadingAvatar
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : _avatar == null
                         ? const Icon(
-                      Icons.person,
-                      size: 55,
-                      color: Colors.white54,
-                    )
+                            Icons.person,
+                            size: 55,
+                            color: Colors.white54,
+                          )
                         : null,
                   ),
                   Positioned(
@@ -93,7 +135,7 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                         color: Colors.white,
                       ),
                     ),
-                  )
+                  ),
                 ],
               ),
             ),
@@ -173,7 +215,13 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                 // Hiển thị trạng thái loading khi đang gọi API
                 setState(() => _isLoading = true);
                 try {
-                  final updateProfileRequest = UpdateUserRequest(fullName: fullName, phone: phone, gender: gender);
+                  final updateProfileRequest = UpdateUserRequest(
+                    fullName: fullName,
+                    phone: phone,
+                    gender: gender,
+                    avatarUrl: _avatarUrl,
+                    avatarPublicId: _avatarPublicId,
+                  );
                   await UserService().updateProfile(updateProfileRequest);
 
                   // Kiểm tra context còn sống hay không
@@ -195,10 +243,8 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
 
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const HomeScreen(),
-                    ),
-                        (route) => false,
+                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                    (route) => false,
                   );
                 } catch (e) {
                   if (!context.mounted) return;

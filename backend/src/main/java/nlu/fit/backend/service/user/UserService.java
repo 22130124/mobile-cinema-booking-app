@@ -1,6 +1,7 @@
 package nlu.fit.backend.service.user;
 
 import lombok.RequiredArgsConstructor;
+import nlu.fit.backend.dto.upload.response.UploadImageResponse;
 import nlu.fit.backend.dto.user.request.UpdateUserRequest;
 import nlu.fit.backend.dto.user.response.UserResponse;
 import nlu.fit.backend.model.User;
@@ -9,11 +10,14 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
-import static nlu.fit.backend.model.User.UserGender.*;
-import static nlu.fit.backend.model.User.UserStatus.*;
+import java.io.IOException;
+
+import static nlu.fit.backend.model.User.UserGender.FEMALE;
+import static nlu.fit.backend.model.User.UserGender.MALE;
+import static nlu.fit.backend.model.User.UserStatus.COMPLETED;
+import static nlu.fit.backend.model.User.UserStatus.INCOMPLETED;
 
 @Service
 @RequiredArgsConstructor
@@ -64,16 +68,24 @@ public class UserService {
         }
         user.setPhone(request.getPhone());
 
-        // Kiểm tra người dùng có upload ảnh hay không
-//        if (StringUtils.hasText(request.getAvatarUrl()) && StringUtils.hasText(request.getAvatarPublicId())) {
-//            user.setAvatarUrl(request.getAvatarUrl());
-//            user.setAvatarPublicId(request.getAvatarPublicId());
-//        }
-
         // Thiết lập trạng thái hồ sơ đã hoàn thành
         user.setStatus(COMPLETED);
 
         // Lưu lại thông tin
+        userRepository.save(user);
+    }
+
+    // Cập nhật avatar
+    @Transactional
+    public void updateAvatar(Long userId, UploadImageResponse response) throws IOException {
+        if (userId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng");
+        // Tìm kiếm người dùng theo id
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng"));
+
+        // Cập nhật lại thông tin ảnh mới vào database
+        user.setAvatarUrl(response.getSecureUrl());
+        user.setAvatarPublicId(response.getSecureUrl());
         userRepository.save(user);
     }
 
@@ -88,6 +100,17 @@ public class UserService {
                 () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng"));
         return convertUserToDto(user);
     }
+
+    // Phương thức lấy ra avatarPublicId của user cụ thể (phục vụ cho việc xóa ảnh)
+    public String getAvatarPublicId(Long userId) {
+        if (userId == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng");
+        // Tìm kiếm người dùng theo id
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng"));
+        return user.getAvatarPublicId();
+    }
+
 
     private UserResponse convertUserToDto(User user) {
         UserResponse userResponse = new UserResponse();

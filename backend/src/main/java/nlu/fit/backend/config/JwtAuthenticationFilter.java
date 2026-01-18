@@ -57,7 +57,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String role = claims.get("role", String.class);
 
             // 6. Tạo Authentication object
-            //    - principal: email
+            //    - principal: userId
             //    - credentials: null (không cần password)
             //    - authorities: ROLE_<role>
             var auth = new UsernamePasswordAuthenticationToken(

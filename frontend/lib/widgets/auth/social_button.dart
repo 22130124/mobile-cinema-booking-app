@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class SocialButton extends StatelessWidget {
   final String text;
-  final String iconUrl; // Đường dẫn ảnh logo
+  final String iconUrl;
   final VoidCallback? onTapSync;
   final Future<void> Function()? onTapAsync;
   final bool isLoading;
@@ -32,27 +32,27 @@ class SocialButton extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(30),
         ),
-        child: isLoading
-            ? const SizedBox(
-          width: 20,
-          height: 20,
-          child: CircularProgressIndicator(
-            color: Colors.black,
-            strokeWidth: 2,
-          ),
-        )
-            : Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Logo
-            Image.network(
-              iconUrl,
-              height: 24,
+            // Icon hoặc Loading
+            SizedBox(
               width: 24,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.error),
+              height: 24,
+              child: isLoading
+                  ? const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.black,
+                    )
+                  : Image.network(
+                      iconUrl,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const Icon(Icons.error),
+                    ),
             ),
             const SizedBox(width: 12),
-            // Text
+
+            // Text luôn hiển thị
             Text(
               text,
               style: const TextStyle(
