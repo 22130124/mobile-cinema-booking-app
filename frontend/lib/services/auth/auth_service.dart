@@ -3,11 +3,11 @@ import 'package:frontend/dtos/auth/login_response.dart';
 import 'package:http/http.dart' as http;
 
 class AuthService {
-  final String baseUrl = "http://10.0.2.2:8080";
+  final String baseUrl = "http://10.0.2.2:8080/api/auth";
 
   // Đăng nhập tài khoản
   Future<LoginResponse> login(String email, String password) async {
-    final url = Uri.parse('$baseUrl/auth/login');
+    final url = Uri.parse('$baseUrl/login');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -31,7 +31,7 @@ class AuthService {
 
   // Đăng nhập bằng Google
   Future<LoginResponse> loginWithGoogle(String idToken) async {
-    final url = Uri.parse('$baseUrl/auth/google-login');
+    final url = Uri.parse('$baseUrl/google-login');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -51,7 +51,7 @@ class AuthService {
 
   // Đăng ký tài khoản
   Future<void> register(String email, String password) async {
-    final url = Uri.parse('$baseUrl/auth/register');
+    final url = Uri.parse('$baseUrl/register');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -69,7 +69,7 @@ class AuthService {
 
   // Xác thực OTP
   Future<String> verifyOtp(String email, String otp) async {
-    final url = Uri.parse('$baseUrl/auth/verify-otp');
+    final url = Uri.parse('$baseUrl/verify-otp');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -91,7 +91,7 @@ class AuthService {
 
   // Gửi lại OTP
   Future<void> resendOtp(String email) async {
-    final url = Uri.parse('$baseUrl/auth/resend-otp');
+    final url = Uri.parse('$baseUrl/resend-otp');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -108,7 +108,7 @@ class AuthService {
 
   // Quên mật khẩu
   Future<void> forgotPassword(String email) async {
-    final url = Uri.parse('$baseUrl/auth/forgot-password');
+    final url = Uri.parse('$baseUrl/forgot-password');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},
@@ -129,7 +129,7 @@ class AuthService {
     String token,
     String password,
   ) async {
-    final url = Uri.parse('$baseUrl/auth/reset-password');
+    final url = Uri.parse('$baseUrl/reset-password');
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},

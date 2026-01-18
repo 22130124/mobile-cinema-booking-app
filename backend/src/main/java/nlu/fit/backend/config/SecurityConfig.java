@@ -22,9 +22,9 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/admin/**").hasRole("ADMIN") // chỉ cho phép quyền admin
-                        .requestMatchers("/auth/change-password").hasRole("USER")
-                        .requestMatchers("/auth/**").permitAll() // api công khai
+                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN") // chỉ cho phép quyền admin
+                        .requestMatchers("/api/auth/change-password").hasRole("USER")
+                        .requestMatchers("/api/auth/**").permitAll() // api công khai
                         .requestMatchers("/api/movies/**").permitAll() // api phim công khai
                         .requestMatchers("/api/booking/**").permitAll()
                         .requestMatchers("/api/payment/**").permitAll()
