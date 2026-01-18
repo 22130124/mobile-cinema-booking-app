@@ -3,7 +3,7 @@ package nlu.fit.backend.model.auth;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import nlu.fit.backend.model.user.User;
+import nlu.fit.backend.model.User;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 

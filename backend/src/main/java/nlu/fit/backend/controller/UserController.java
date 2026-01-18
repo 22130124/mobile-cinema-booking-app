@@ -3,6 +3,7 @@ package nlu.fit.backend.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import nlu.fit.backend.dto.user.request.UpdateUserRequest;
+import nlu.fit.backend.dto.user.response.UserResponse;
 import nlu.fit.backend.service.user.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,5 +20,11 @@ public class UserController {
                                            @Valid @RequestBody UpdateUserRequest request) {
         userService.updateProfile(authentication, request);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser(Authentication authentication) {
+        UserResponse user = userService.getCurrentUser(authentication);
+        return ResponseEntity.ok().body(user);
     }
 }

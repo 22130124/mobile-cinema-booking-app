@@ -2,13 +2,14 @@ package nlu.fit.backend.repository;
 
 import nlu.fit.backend.model.SeatHold;
 import nlu.fit.backend.model.Showtime;
-import nlu.fit.backend.model.user.User;
+import nlu.fit.backend.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface SeatHoldRepository extends JpaRepository<SeatHold,Long> {
@@ -26,4 +27,10 @@ public interface SeatHoldRepository extends JpaRepository<SeatHold,Long> {
     boolean existsByShowtimeIdAndSeatIdAndExpiresAtAfter(Long showtimeId, Long seatId, LocalDateTime expiresAtAfter);
 
     boolean existsByShowtimeIdAndSeatIdAndExpiresAt(Long showtimeId, Long seatId, LocalDateTime expiresAt);
+
+    List<SeatHold> findByShowtimeIdAndExpiresAtAfter(Long showtimeId, LocalDateTime expiresAtAfter);
+    Optional<SeatHold> findFirstByShowtimeIdAndSeatIdAndExpiresAtAfter(Long showtimeId, Long seatId, LocalDateTime expiresAtAfter);
+
+    void deleteByUserIdAndShowtimeIdAndSeatIdIn(Long userId, Long showtimeId, Collection<Long> seatIds);
+
 }

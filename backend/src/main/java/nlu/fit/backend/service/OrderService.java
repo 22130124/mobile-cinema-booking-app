@@ -4,9 +4,10 @@ import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import nlu.fit.backend.dto.order.*;
 import nlu.fit.backend.model.*;
-import nlu.fit.backend.model.user.User;
+import nlu.fit.backend.model.User;
 import nlu.fit.backend.repository.*;
-import nlu.fit.backend.repository.user.UserRepository;
+import nlu.fit.backend.repository.UserRepository;
+import nlu.fit.backend.service.user.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -15,9 +16,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,6 +24,7 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 public class OrderService {
+    private final UserService userService;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
@@ -42,21 +42,24 @@ public class OrderService {
 
     @Transactional
     public OrderResponse createOrder(PostOrder input) {
-        User user = userRepository.findById(input.userId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(input.userId()).orElseThrow(() -> new RuntimeException("User not found"));
 
         Showtime showTime = showTimeRepository.findById((long) input.showTimeId()).orElseThrow(
                 () -> new RuntimeException("Show time not found"));
 
         /* - Kiểm tra các ghế (seatIds) có đang trống không? (Check bảng tickets và seat_holds)         */
+        LocalDateTime now = LocalDateTime.now();
         List<Long> unAvailableSeatIds = input.seatIds().stream().filter(seatId -> {
 
             boolean isSold = ticketRepository.existsByShowTimeIdAndSeatIdAndStatus(input.showTimeId(), seatId, (byte) 1);
+            if (isSold) {
+                return true;
+            }
 
-            boolean isHeld = seatHoldRepository.existsByShowtimeIdAndSeatIdAndExpiresAt(
-                    input.showTimeId(), seatId, LocalDateTime.now());
-
-            return isSold || isHeld;
+            return seatHoldRepository
+                    .findFirstByShowtimeIdAndSeatIdAndExpiresAtAfter(input.showTimeId(), seatId, now)
+                    .map(hold -> !hold.getUser().getId().equals(user.getId()))
+                    .orElse(false);
         }).collect(Collectors.toList());
 
         if (!unAvailableSeatIds.isEmpty()) {
@@ -64,16 +67,28 @@ public class OrderService {
             return null;
         }
 
-        /* setTime cho ghế khách đặt
-        * Nên tạo seathold cho khách khi khách selected hay là khách create order
+        /* setTime cho ghe khach dat
+        * Nen tao seathold cho khach khi khach selected hay la khach create order
         * */
+        LocalDateTime holdExpiresAt = now.plusMinutes(10);
         input.seatIds().forEach(seatId -> {
+            SeatHold existingHold = seatHoldRepository
+                    .findFirstByShowtimeIdAndSeatIdAndExpiresAtAfter(input.showTimeId(), seatId, now)
+                    .orElse(null);
+            if (existingHold != null) {
+                if (existingHold.getUser().getId().equals(user.getId())) {
+                    existingHold.setHeldAt(now);
+                    existingHold.setExpiresAt(holdExpiresAt);
+                    seatHoldRepository.save(existingHold);
+                }
+                return;
+            }
             SeatHold seatHold = new SeatHold();
             Seat seat = seatRepository.findById(seatId).orElseThrow(() -> new RuntimeException("Seat not found"));
             seatHold.setUser(user);
             seatHold.setSeat(seat);
             seatHold.setShowtime(showTime);
-            seatHold.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+            seatHold.setExpiresAt(holdExpiresAt);
             seatHoldRepository.save(seatHold);
         });
 
@@ -130,7 +145,7 @@ public class OrderService {
                             showTime.getStartTime().format(DateTimeFormatter.ofPattern("HH:mm")),
                             showTime.getRoom().getCinema().getName(),
                             seatsName,
-                            item.getTotalTickets(),
+                            item.getTotalPrice() == null ? BigDecimal.ZERO : item.getTotalPrice(),
                             item.getStatus(),
                             item.getQrCodeData(),
                             showTimeDto,

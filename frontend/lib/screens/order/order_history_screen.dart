@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:frontend/model/order/Order.dart';
 import 'package:frontend/screens/order/ticket_detail_screen.dart';
 import 'package:frontend/services/order/order_service.dart';
+import 'package:frontend/utils/price_formatter.dart';
 
 class OrderHistoryScreen extends StatefulWidget {
   final int userId;
@@ -202,7 +203,7 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
                                       ),
                                     ),
                                     Text(
-                                      "${item.amount} đ",
+                                      "${formatVnd(item.amount)} đ",
                                       style: const TextStyle(
                                         color: kGoldColor,
                                         fontWeight: FontWeight.bold,

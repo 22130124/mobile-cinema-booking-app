@@ -4,7 +4,6 @@ import 'package:frontend/screens/user/profile_info_screen.dart';
 import 'package:frontend/services/auth/auth_service.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
-import 'package:frontend/screens/home/main_screen.dart';
 import '../../storage/jwt_token_storage.dart';
 import '../admin/dashboard_screen.dart';
 import 'register_screen.dart';

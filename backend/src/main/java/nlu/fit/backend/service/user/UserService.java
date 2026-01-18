@@ -2,8 +2,9 @@ package nlu.fit.backend.service.user;
 
 import lombok.RequiredArgsConstructor;
 import nlu.fit.backend.dto.user.request.UpdateUserRequest;
-import nlu.fit.backend.model.user.User;
-import nlu.fit.backend.repository.user.UserRepository;
+import nlu.fit.backend.dto.user.response.UserResponse;
+import nlu.fit.backend.model.User;
+import nlu.fit.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -11,8 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 
-import static nlu.fit.backend.model.user.User.UserGender.*;
-import static nlu.fit.backend.model.user.User.UserStatus.*;
+import static nlu.fit.backend.model.User.UserGender.*;
+import static nlu.fit.backend.model.User.UserStatus.*;
 
 @Service
 @RequiredArgsConstructor
@@ -67,5 +68,28 @@ public class UserService {
 
         // Lưu lại thông tin
         userRepository.save(user);
+    }
+
+    // Phương thức lấy ra user hiện tại đang đăng nhập
+    public UserResponse getCurrentUser(Authentication authentication) {
+        // Lấy userId từ JWT token
+        Long userId = (Long) authentication.getPrincipal();
+        if (userId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng");
+        // Tìm kiếm người dùng theo id
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng"));
+        return convertUserToDto(user);
+    }
+
+    private UserResponse convertUserToDto(User user) {
+        UserResponse userResponse = new UserResponse();
+        userResponse.setId(user.getId());
+        userResponse.setFullName(user.getFullName());
+        userResponse.setGender(String.valueOf(user.getGender()));
+        userResponse.setPhone(user.getPhone());
+        userResponse.setAvatarUrl(user.getAvatarUrl());
+        userResponse.setAvatarPublicId(user.getAvatarPublicId());
+        userResponse.setStatus(String.valueOf(user.getStatus()));
+        return userResponse;
     }
 }

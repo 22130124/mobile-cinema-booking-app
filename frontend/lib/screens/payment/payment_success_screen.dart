@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/model/order/Order.dart';
 import 'package:frontend/services/order/order_service.dart';
+import 'package:frontend/utils/price_formatter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class PaymentSuccessScreen extends StatefulWidget {
@@ -110,7 +111,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                               order.tickets.map((t) => t.seatInfo).join(", "),
                             ),
                             Divider(),
-                            _buildInfoRow("Tổng tiền", "${order.amount} VND"),
+                            _buildInfoRow("Tổng tiền", "${formatVnd(order.amount)} VND"),
                           ],
                         ),
                       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/model/order/Order.dart';
 import 'package:frontend/services/order/order_service.dart';
+import 'package:frontend/utils/price_formatter.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 class TicketDetailScreen extends StatefulWidget {
@@ -136,7 +137,7 @@ class _TicketDetailScreen extends State<TicketDetailScreen> {
                           children: [
                             const Text("Tổng tiền:", style: TextStyle(fontSize: 16)),
                             Text(
-                              "${booking.amount} đ",
+                              "${formatVnd(booking.amount)} đ",
                               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFFD4AF37)),
                             ),
                           ],

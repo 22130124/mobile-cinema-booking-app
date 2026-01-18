@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:frontend/dtos/auth/login_response.dart';
 import 'package:http/http.dart' as http;
+import 'package:frontend/config/api_config.dart';
 
 class AuthService {
-  final String baseUrl = "http://10.0.2.2:8080/api/auth";
+  final String baseUrl = '$BASE_URL/auth';
 
   // Đăng nhập tài khoản
   Future<LoginResponse> login(String email, String password) async {
@@ -143,4 +144,33 @@ class AuthService {
       throw message;
     }
   }
+  Future<int> fetchCurrentUserId(String token) async {
+    final url = Uri.parse('$BASE_URL/users/me');
+    final response = await http.get(
+      url,
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final idValue = data['id'];
+    if (idValue is int) {
+      return idValue;
+    }
+    if (idValue is num) {
+      return idValue.toInt();
+    }
+    if (idValue is String) {
+      final parsed = int.tryParse(idValue);
+      if (parsed != null) return parsed;
+    }
+    throw 'Invalid user id';
+  }
 }
+

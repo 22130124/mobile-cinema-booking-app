@@ -1,4 +1,4 @@
-package nlu.fit.backend.model.user;
+package nlu.fit.backend.model;
 
 import jakarta.persistence.*;
 import lombok.Getter;

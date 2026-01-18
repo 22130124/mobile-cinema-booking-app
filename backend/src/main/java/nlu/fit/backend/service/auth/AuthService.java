@@ -10,7 +10,7 @@ import nlu.fit.backend.dto.auth.response.LoginResponse;
 import nlu.fit.backend.model.auth.Account;
 import nlu.fit.backend.model.auth.EmailOtp;
 import nlu.fit.backend.model.auth.PasswordResetToken;
-import nlu.fit.backend.model.user.User;
+import nlu.fit.backend.model.User;
 import nlu.fit.backend.repository.auth.AccountRepository;
 import nlu.fit.backend.repository.auth.EmailOtpRepository;
 import nlu.fit.backend.repository.auth.PasswordResetTokenRepository;
@@ -28,7 +28,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
-import java.security.AuthProvider;
 import java.security.GeneralSecurityException;
 import java.time.LocalDateTime;
 import java.util.Collections;
