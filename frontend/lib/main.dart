@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
       ),
 
       // ✅ KEEP nguyên như bạn đang dùng
-      // home: const LoginScreen(),
+      home: const LoginScreen(),
       // home: const MainScreen(),
       // home: const OrderHistoryScreen(userId: 2),
       // home: const CreateOrder(),
@@ -41,18 +41,10 @@ class MyApp extends StatelessWidget {
       // Test Movie Detail Screen
       // home: const MovieDetailScreen(movieId: '1'),
 
-      // ✅ ADD: Admin routes (chỉ để test / điều hướng, không ảnh hưởng flow hiện tại)
-      routes: {
-        '/main': (_) => const MainScreen(),
-        '/admin/dashboard': (_) => const AdminDashboardScreen(),
-        '/admin/trailers': (_) => const AdminTrailersScreen(),
-      },
-
-      
         // ====== ADMIN UI TEST (tuỳ chọn, đừng push nếu sợ conflict) ======
         // Muốn test nhanh thì tạm thời đổi home sang 1 trong 2 dòng dưới,
         // test xong nhớ trả lại home: LoginScreen.
-        home: const AdminDashboardScreen(),
+        // home: const AdminDashboardScreen(),
         // home: const AdminTrailersScreen(),
       
     );

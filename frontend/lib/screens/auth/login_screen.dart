@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/admin/admin_dashboard_screen.dart';
 import 'package:frontend/screens/home/main_screen.dart';
 import 'package:frontend/services/auth_service.dart';
+import 'package:frontend/utils/jwt_utils.dart';
 import '../../storage/jwt_token_storage.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
@@ -127,15 +129,25 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Nếu đăng nhập thành công thì lưu jwt token vào storage
                         await JwtTokenStorage.saveToken(jwtToken);
+                        final bool isAdmin = isAdminRoleFromToken(jwtToken);
+
 
                         // Kiểm tra context còn sống hay không
                         if (!context.mounted) return;
-                        // Chuyển hướng vào MainScreen (với Bottom Navigation)
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (_) => const MainScreen()),
-                          (route) => false,
-                        );
+                        // Nếu là admin thì chuyển hướng vào AdminDashboardScreen còn không thì vào màn hình chính
+                        if (isAdmin) {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+                            (route) => false,
+                          );
+                        } else {
+                          Navigator.pushAndRemoveUntil(
+                            context,
+                            MaterialPageRoute(builder: (_) => const MainScreen()),
+                            (route) => false,
+                          );
+                        }
                       } catch (e) {
                         if (!context.mounted) return;
 
