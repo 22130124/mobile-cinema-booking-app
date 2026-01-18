@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../config/app_colors.dart';
 import '../../model/movie_model.dart';
+import '../../screens/movie_details/movie_details_screen.dart';
 
 class MovieCard extends StatelessWidget {
   final Movie movie;
@@ -12,7 +13,14 @@ class MovieCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // TODO: Navigate to movie detail
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MovieDetailScreen(
+              movieId: movie.id.toString(),
+            ),
+          ),
+        );
       },
       child: SizedBox(
         width: 140,

@@ -38,7 +38,11 @@ public class OrderController {
     @PostMapping("/createOrder")
     public ResponseEntity<OrderResponse> createOrder(
             @RequestBody PostOrder order) {
-        return ResponseEntity.ok(orderService.createOrder(order));
+        OrderResponse response = orderService.createOrder(order);
+        if (response == null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+        }
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}/cancel")

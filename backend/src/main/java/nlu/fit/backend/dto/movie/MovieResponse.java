@@ -29,6 +29,7 @@ public class MovieResponse {
     private String director;
     private String cast;
     private String ageRating;
+    private String trailerUrl;
     
     /**
      * Convert từ Movie Entity sang MovieResponse DTO
@@ -49,6 +50,12 @@ public class MovieResponse {
                 .cast(movie.getCast())
                 .ageRating(movie.getAgeRating())
                 .build();
+    }
+
+    public static MovieResponse fromEntity(Movie movie, String trailerUrl) {
+        MovieResponse response = fromEntity(movie);
+        response.setTrailerUrl(trailerUrl);
+        return response;
     }
     
     //Chuyển ds thể loại thành chuỗi phân cách bởi dấu phẩy

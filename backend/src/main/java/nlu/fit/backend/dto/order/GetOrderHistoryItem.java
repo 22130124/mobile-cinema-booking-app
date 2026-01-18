@@ -1,6 +1,7 @@
 package nlu.fit.backend.dto.order;
 
 import lombok.Builder;
+import java.math.BigDecimal;
 import java.util.List;
 
 @Builder
@@ -12,7 +13,7 @@ public record GetOrderHistoryItem(
         String time,
         String cinema,
         String seats,
-        int amount,
+        BigDecimal amount,
         int status,
         String qrData,
         ShowTimeDto showTime,

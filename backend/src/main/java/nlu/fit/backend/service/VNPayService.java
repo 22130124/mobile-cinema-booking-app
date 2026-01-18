@@ -25,6 +25,7 @@ public class VNPayService {
 //        String vnp_IpAddr = vnPayUtils.getIpAddress(request);
         String vnp_TmnCode = config.getTmnCode();
         String vnp_IpAddr = "127.0.0.1";
+        String returnUrl = buildReturnUrl(request);
 
         // 1. Calculate Amount (Multiply by 100)
 
@@ -44,7 +45,7 @@ public class VNPayService {
 
         vnp_Params.put("vnp_OrderType", "other");
         vnp_Params.put("vnp_Locale", "vn");
-        vnp_Params.put("vnp_ReturnUrl", config.getReturnUrl());
+        vnp_Params.put("vnp_ReturnUrl", returnUrl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
 
         vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
@@ -55,7 +56,7 @@ public class VNPayService {
         } else {
             vnp_Params.put("vnp_Locale", "vn");
         }
-        vnp_Params.put("vnp_ReturnUrl", config.getReturnUrl());
+        vnp_Params.put("vnp_ReturnUrl", returnUrl);
         vnp_Params.put("vnp_IpAddr", vnp_IpAddr);
         Calendar cld = Calendar.getInstance(TimeZone.getTimeZone("Etc/GMT+7"));
         SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
@@ -107,6 +108,9 @@ public class VNPayService {
         Map<String, String> fields = new HashMap<>();
         for (Enumeration<String> params = request.getParameterNames(); params.hasMoreElements(); ) {
             String fieldName = params.nextElement();
+            if (!fieldName.startsWith("vnp_")) {
+                continue;
+            }
             String fieldValue = request.getParameter(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
                 fields.put(fieldName, fieldValue);
@@ -114,6 +118,9 @@ public class VNPayService {
         }
 
         String vnp_SecureHash = request.getParameter("vnp_SecureHash");
+        if (vnp_SecureHash == null || vnp_SecureHash.isEmpty()) {
+            return false;
+        }
         if (fields.containsKey("vnp_SecureHashType")) {
             fields.remove("vnp_SecureHashType");
         }
@@ -141,5 +148,38 @@ public class VNPayService {
 
         String signValue = vnPayUtils.hmacSHA512(config.getHashSecret(), hashData.toString());
         return signValue.equals(vnp_SecureHash);
+    }
+
+    private String buildReturnUrl(HttpServletRequest request) {
+        String baseReturnUrl = config.getReturnUrl();
+        String client = request.getParameter("client");
+        String redirect = request.getParameter("redirect");
+
+        Map<String, String> extras = new LinkedHashMap<>();
+        if (client != null && !client.isBlank()) {
+            extras.put("client", client);
+        }
+        if (redirect != null && !redirect.isBlank()) {
+            extras.put("redirect", redirect);
+        }
+        if (extras.isEmpty()) {
+            return baseReturnUrl;
+        }
+
+        StringBuilder url = new StringBuilder(baseReturnUrl);
+        String separator = baseReturnUrl.contains("?") ? "&" : "?";
+        url.append(separator);
+
+        boolean first = true;
+        for (Map.Entry<String, String> entry : extras.entrySet()) {
+            if (!first) {
+                url.append('&');
+            }
+            url.append(URLEncoder.encode(entry.getKey(), StandardCharsets.UTF_8));
+            url.append('=');
+            url.append(URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8));
+            first = false;
+        }
+        return url.toString();
     }
 }

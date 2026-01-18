@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -118,7 +120,8 @@ public class PaymentController {
 
         orderRepository.save(order);
         String status = "00".equals(request.getParameter("vnp_ResponseCode")) ? "success" : "fail";
-        String redirectUrl = String.format("cinemapp://payment-result?orderId=%s&status=%s", txnRef, status);
+        String redirect = request.getParameter("redirect");
+        String redirectUrl = buildRedirectUrl(redirect, txnRef, status);
         return ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(redirectUrl))
                 .build();
@@ -153,5 +156,24 @@ public class PaymentController {
                 order.getShowtime().getId(),
                 order.getTotalTickets()
         );
+    }
+
+    private String buildRedirectUrl(String redirect, String orderId, String status) {
+        if (redirect != null && !redirect.isBlank()) {
+            try {
+                return appendQuery(redirect, orderId, status);
+            } catch (Exception ignored) {
+            }
+        }
+        String encodedOrderId = URLEncoder.encode(orderId, StandardCharsets.UTF_8);
+        String encodedStatus = URLEncoder.encode(status, StandardCharsets.UTF_8);
+        return String.format("cinemapp://payment-result?orderId=%s&status=%s", encodedOrderId, encodedStatus);
+    }
+
+    private String appendQuery(String baseUrl, String orderId, String status) {
+        String separator = baseUrl.contains("?") ? "&" : "?";
+        String encodedOrderId = URLEncoder.encode(orderId, StandardCharsets.UTF_8);
+        String encodedStatus = URLEncoder.encode(status, StandardCharsets.UTF_8);
+        return baseUrl + separator + "orderId=" + encodedOrderId + "&status=" + encodedStatus;
     }
 }

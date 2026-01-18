@@ -5,6 +5,7 @@ import '../../model/movie_model.dart';
 import '../../services/movie_service.dart';
 import '../../widgets/home/movie_banner.dart';
 import '../../widgets/home/movie_card.dart';
+import '../movie_details/movie_details_screen.dart';
 import 'search_screen.dart';
 import 'all_movies_screen.dart';
 
@@ -116,6 +117,17 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       }
     });
+  }
+
+  void _openMovieDetail(Movie movie) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MovieDetailScreen(
+          movieId: movie.id.toString(),
+        ),
+      ),
+    );
   }
 
   /// Lấy icon phù hợp với loại lỗi
@@ -448,7 +460,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               );
             },
-            child: MovieBanner(movie: movies[index]),
+            child: GestureDetector(
+              onTap: () => _openMovieDetail(movies[index]),
+              child: MovieBanner(movie: movies[index]),
+            ),
           );
         },
       ),

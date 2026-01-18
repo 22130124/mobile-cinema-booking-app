@@ -7,7 +7,6 @@ import '../../config/api_config.dart';
 
 class OrderService {
   Future<List<OrderHistoryItem>> getListOrder(int userId) async {
-    userId = 2;
     final response = await http.get(
       Uri.parse('$BASE_URL/booking/getListBooking/$userId'),
     );
@@ -58,9 +57,24 @@ class OrderService {
     }
   }
 
-  Future<Map<String, String>> createPaymentUrl(String bookingId) async {
+  Future<Map<String, String>> createPaymentUrl(
+    String bookingId, {
+    String? client,
+    String? redirect,
+  }) async {
+    final params = <String, String>{};
+    if (client != null && client.isNotEmpty) {
+      params['client'] = client;
+    }
+    if (redirect != null && redirect.isNotEmpty) {
+      params['redirect'] = redirect;
+    }
+    final uri = params.isEmpty
+        ? Uri.parse('$BASE_URL/payment/createPaymentUrl/$bookingId')
+        : Uri.parse('$BASE_URL/payment/createPaymentUrl/$bookingId')
+            .replace(queryParameters: params);
     final response = await http.post(
-      Uri.parse('$BASE_URL/payment/createPaymentUrl/$bookingId'),
+      uri,
       headers: {'Content-Type': 'application/json'},
     );
     print(response.body);
