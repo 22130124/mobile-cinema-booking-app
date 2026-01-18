@@ -41,7 +41,8 @@ public class UserService {
     public void updateProfile(Authentication authentication, UpdateUserRequest request) {
         // Lấy userId từ JWT token
         Long userId = (Long) authentication.getPrincipal();
-        if (userId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng");
+        if (userId == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng");
 
         // Tìm kiếm User theo userId
         User user = userRepository.findById(userId).orElseThrow(
@@ -57,11 +58,17 @@ public class UserService {
                 user.setGender(FEMALE);
                 break;
         }
-        user.setPhone(request.getPhone());
-        if (StringUtils.hasText(request.getAvatarUrl()) && StringUtils.hasText(request.getAvatarPublicId())) {
-            user.setAvatarUrl(request.getAvatarUrl());
-            user.setAvatarPublicId(request.getAvatarPublicId());
+        // Kiểm tra số điện thoại
+        if (userRepository.existsByPhone(request.getPhone())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại đã được sử dụng");
         }
+        user.setPhone(request.getPhone());
+
+        // Kiểm tra người dùng có upload ảnh hay không
+//        if (StringUtils.hasText(request.getAvatarUrl()) && StringUtils.hasText(request.getAvatarPublicId())) {
+//            user.setAvatarUrl(request.getAvatarUrl());
+//            user.setAvatarPublicId(request.getAvatarPublicId());
+//        }
 
         // Thiết lập trạng thái hồ sơ đã hoàn thành
         user.setStatus(COMPLETED);
@@ -74,7 +81,8 @@ public class UserService {
     public UserResponse getCurrentUser(Authentication authentication) {
         // Lấy userId từ JWT token
         Long userId = (Long) authentication.getPrincipal();
-        if (userId == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng");
+        if (userId == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng");
         // Tìm kiếm người dùng theo id
         User user = userRepository.findById(userId).orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng"));
