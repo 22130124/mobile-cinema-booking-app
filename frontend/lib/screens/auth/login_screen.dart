@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
     // Dựa vào role để quyết định trang đích sẽ được chuyển đến
     switch (role) {
       case "USER":
-        // Nếu là user mới đăng ký tài khoản thì sẽ chuyển vào trang hồ sơ người dùng
+        // Nếu là user_profile mới đăng ký tài khoản thì sẽ chuyển vào trang hồ sơ người dùng
         if (userStatus == false) {
           Navigator.pushAndRemoveUntil(
             context,

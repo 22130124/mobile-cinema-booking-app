@@ -1,15 +1,17 @@
 import 'dart:convert';
 
 import 'package:frontend/config/api_config.dart';
-import 'package:frontend/models/user/update_user_request.dart';
 import 'package:frontend/storage/jwt_token_storage.dart';
 import 'package:http/http.dart' as http;
 
+import '../../dtos/user_profile/update_user_profile_request.dart';
+
+
 class UserService {
-  final String baseUrl = "http://10.0.2.2:8080";
+  final String baseUrl = '${getBaseUrl()}/users';
   // Cập nhật thông tin hồ sơ người dùng
-  Future<void> updateProfile(UpdateUserRequest request) async {
-    final url = Uri.parse('$baseUrl/users');
+  Future<void> updateProfile(UpdateUserProfileRequest request) async {
+    final url = Uri.parse(baseUrl);
     final jwtToken = await JwtTokenStorage.getToken();
     final response = await http.put(
       url,

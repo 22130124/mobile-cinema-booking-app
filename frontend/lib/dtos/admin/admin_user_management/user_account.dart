@@ -1,23 +1,15 @@
-enum UserGender { male, female }
-
-enum UserStatus { completed, incompleted }
-
-enum AccountRole { user, admin }
-
-enum AccountStatus { unverified, active, inactive }
-
-class UserAccountModel {
+class UserAccount {
   final int id;
   final String fullName;
   final String email;
   final String phone;
-  final UserGender gender;
-  final UserStatus userStatus;
-  final AccountRole role;
-  final AccountStatus accountStatus;
+  final String gender;
+  final String userStatus;
+  final String role;
+  final String accountStatus;
   final String? avatarUrl;
 
-  UserAccountModel({
+  UserAccount({
     required this.id,
     required this.fullName,
     required this.email,
@@ -29,8 +21,8 @@ class UserAccountModel {
     this.avatarUrl,
   });
 
-  UserAccountModel copyWith({AccountStatus? accountStatus}) {
-    return UserAccountModel(
+  UserAccount copyWith({String? accountStatus}) {
+    return UserAccount(
       id: id,
       fullName: fullName,
       email: email,

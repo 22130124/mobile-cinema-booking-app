@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../config/app_colors.dart';
-import '../../../model/admin/user_account.dart';
+import '../../../dtos/admin/admin_user_management/user_account.dart';
 
 // Dialog hiển thị chi tiết thông tin người dùng
 class UserDetailDialog extends StatelessWidget {
-  final UserAccountModel user; // Thông tin user cần hiển thị
+  final UserAccount user; // Thông tin user_profile cần hiển thị
   final VoidCallback? onEdit; // Cho phép bấm sửa ngay từ màn hình chi tiết
 
   const UserDetailDialog({super.key, required this.user, this.onEdit});
@@ -70,12 +70,12 @@ class UserDetailDialog extends StatelessWidget {
                         alignment: WrapAlignment.center,
                         children: [
                           _statusBadge(
-                            user.role.name.toUpperCase(),
+                            user.role,
                             Colors.blue,
                           ),
                           _statusBadge(
-                            user.accountStatus.name.toUpperCase(),
-                            user.accountStatus == AccountStatus.active
+                            user.accountStatus,
+                            user.accountStatus == 'ACTIVE'
                                 ? Colors.green
                                 : Colors.red,
                           ),
@@ -98,12 +98,12 @@ class UserDetailDialog extends StatelessWidget {
                 _buildInfoRow(
                   Icons.wc,
                   'Giới tính',
-                  user.gender == UserGender.male ? 'Nam' : 'Nữ',
+                  user.gender == 'MALE' ? 'Nam' : 'Nữ',
                 ),
                 _buildInfoRow(
                   Icons.verified_user_outlined,
                   'Trạng thái hồ sơ',
-                  user.userStatus.name.toUpperCase(),
+                  user.userStatus,
                 ),
                 _buildInfoRow(Icons.key, 'ID Hệ thống', '#${user.id}'),
 

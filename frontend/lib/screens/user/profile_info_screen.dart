@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:frontend/models/user/update_user_request.dart';
 import 'package:frontend/screens/home/home_screen.dart';
 import 'package:frontend/services/user/user_service.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../dtos/user_profile/update_user_profile_request.dart';
 import '../../services/upload/upload_service.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
@@ -215,7 +215,7 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                 // Hiển thị trạng thái loading khi đang gọi API
                 setState(() => _isLoading = true);
                 try {
-                  final updateProfileRequest = UpdateUserRequest(
+                  final updateProfileRequest = UpdateUserProfileRequest(
                     fullName: fullName,
                     phone: phone,
                     gender: gender,

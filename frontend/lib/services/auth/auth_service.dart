@@ -170,7 +170,7 @@ class AuthService {
       final parsed = int.tryParse(idValue);
       if (parsed != null) return parsed;
     }
-    throw 'Invalid user id';
+    throw 'Invalid user_profile id';
   }
 }
 

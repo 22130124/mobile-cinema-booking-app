@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../config/app_colors.dart';
-import '../../../model/admin/user_account.dart';
+import '../../../dtos/admin/admin_user_management/user_account.dart';
 
 class UserAccountCard extends StatelessWidget {
-  final UserAccountModel user; // Thông tin user cần hiển thị
+  final UserAccount user; // Thông tin user_profile cần hiển thị
   final VoidCallback onEdit; // Callback khi bấm sửa thông tin
   final VoidCallback onLockToggle; // Callback khi bấm khóa / mở khóa tài khoản
   final VoidCallback onTap; // Callback khi bấm vào toàn bộ card
@@ -20,8 +20,8 @@ class UserAccountCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Kiểm tra tài khoản có đang bị khóa không
-    bool isLocked = user.accountStatus == AccountStatus.inactive;
-    // Kiểm tra user có avatar hay không
+    bool isLocked = user.accountStatus == 'INACTIVE';
+    // Kiểm tra user_profile có avatar hay không
     final bool hasAvatar = user.avatarUrl != null && user.avatarUrl!.isNotEmpty;
 
     return Card(
@@ -83,8 +83,8 @@ class UserAccountCard extends StatelessWidget {
                       Wrap(
                         spacing: 8,
                         children: [
-                          _tag(user.role.name.toUpperCase()),
-                          _tag(user.accountStatus.name.toUpperCase()),
+                          _tag(user.role),
+                          _tag(user.accountStatus),
                         ],
                       ),
                     ],

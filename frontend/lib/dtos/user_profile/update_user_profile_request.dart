@@ -1,11 +1,11 @@
-class UpdateUserRequest {
+class UpdateUserProfileRequest {
   final String fullName;
   final String phone;
   final String gender;
   final String? avatarUrl;
   final String? avatarPublicId;
 
-  UpdateUserRequest({
+  UpdateUserProfileRequest({
     required this.fullName,
     required this.phone,
     required this.gender,

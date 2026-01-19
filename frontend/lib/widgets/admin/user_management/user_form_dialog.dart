@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../config/app_colors.dart';
-import '../../../model/admin/user_account.dart';
+import '../../../dtos/admin/admin_user_management/user_account.dart';
 import 'confirmation_dialog.dart';
 
 class UserFormDialog extends StatefulWidget {
-  final UserAccountModel? user; // Nếu null là Tạo mới, có dữ liệu là Sửa
-  final Function(UserAccountModel) onSubmit;
+  final UserAccount? user; // Nếu null là Tạo mới, có dữ liệu là Sửa
+  final Function(UserAccount) onSubmit;
 
   const UserFormDialog({super.key, this.user, required this.onSubmit});
 
@@ -21,7 +21,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
   late TextEditingController _nameCtrl;
   late TextEditingController _phoneCtrl;
   late TextEditingController _passCtrl;
-  UserGender _gender = UserGender.male; // Mặc định là Nam
+  String _gender = 'MALE'; // Mặc định là Nam
 
   bool get isEditMode => widget.user != null;
 
@@ -60,16 +60,16 @@ class _UserFormDialogState extends State<UserFormDialog> {
             Navigator.pop(context);
 
             // Tạo model mới (Giả lập)
-            final newUser = UserAccountModel(
+            final newUser = UserAccount(
               id: widget.user?.id ?? DateTime.now().millisecondsSinceEpoch,
               fullName: _nameCtrl.text,
               email: _emailCtrl.text,
               phone: _phoneCtrl.text,
               gender: _gender,
               // Giữ nguyên giá trị cũ hoặc set mặc định
-              userStatus: widget.user?.userStatus ?? UserStatus.incompleted,
-              role: widget.user?.role ?? AccountRole.user,
-              accountStatus: widget.user?.accountStatus ?? AccountStatus.active,
+              userStatus: widget.user?.userStatus ?? 'INCOMPLETED',
+              role: widget.user?.role ?? 'USER',
+              accountStatus: widget.user?.accountStatus ?? 'ACTIVE',
             );
 
             widget.onSubmit(newUser);
@@ -132,9 +132,9 @@ class _UserFormDialogState extends State<UserFormDialog> {
                 const Text('Giới tính', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                 Row(
                   children: [
-                    _buildRadio(UserGender.male, 'Nam'),
+                    _buildRadio('MALE', 'Nam'),
                     const SizedBox(width: 20),
-                    _buildRadio(UserGender.female, 'Nữ'),
+                    _buildRadio('FEMALE', 'Nữ'),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -202,10 +202,10 @@ class _UserFormDialogState extends State<UserFormDialog> {
     );
   }
 
-  Widget _buildRadio(UserGender value, String label) {
+  Widget _buildRadio(String value, String label) {
     return Row(
       children: [
-        Radio<UserGender>(
+        Radio<String>(
           value: value,
           groupValue: _gender,
           activeColor: AppColors.accent,
