@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/admin/admin_dashboard_screen.dart';
+import 'package:frontend/screens/admin/admin_user_management_screen.dart';
 import 'package:frontend/screens/home/home_screen.dart';
 import 'package:frontend/screens/user/profile_info_screen.dart';
 import 'package:frontend/services/auth/auth_service.dart';
@@ -81,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
       case "ADMIN":
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const DashboardScreen()),
+          MaterialPageRoute(builder: (_) => const AdminUserManagementScreen()),
           (_) => false,
         );
         break;
