@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:frontend/dtos/auth/login_response.dart';
 import 'package:http/http.dart' as http;
 import 'package:frontend/config/api_config.dart';
 
+import '../../storage/jwt_token_storage.dart';
+
 class AuthService {
-  final String baseUrl = '$BASE_URL/auth';
+  final String baseUrl = '${getBaseUrl()}/auth';
 
   // Đăng nhập tài khoản
   Future<LoginResponse> login(String email, String password) async {
@@ -171,6 +174,95 @@ class AuthService {
       if (parsed != null) return parsed;
     }
     throw 'Invalid user_profile id';
+  }
+
+  // Khóa tài khoản
+  Future<void> lockAccount(String email) async {
+    debugPrint('Email: $email');
+    final url = Uri.parse('$baseUrl/admin/lock');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.put(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+  }
+
+  // Mở khóa tài khoản
+  Future<void> unlockAccount(String email) async {
+    final url = Uri.parse('$baseUrl/admin/unlock');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.put(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+  }
+
+  // Đặt làm admin
+  Future<void> setAdmin(String email) async {
+    final url = Uri.parse('$baseUrl/admin/set-admin');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.put(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+  }
+
+  // Đặt làm admin
+  Future<void> setUser(String email) async {
+    final url = Uri.parse('$baseUrl/admin/set-user');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.put(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
   }
 }
 

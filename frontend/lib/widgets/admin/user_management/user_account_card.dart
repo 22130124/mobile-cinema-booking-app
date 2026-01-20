@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../config/app_colors.dart';
-import '../../../dtos/admin/admin_user_management/user_account.dart';
+import '../../../dtos/admin/admin_user_management/user_account_response.dart';
 
 class UserAccountCard extends StatelessWidget {
-  final UserAccount user; // Thông tin user_profile cần hiển thị
+  final UserAccountResponse user; // Thông tin user_profile cần hiển thị
   final VoidCallback onEdit; // Callback khi bấm sửa thông tin
   final VoidCallback onLockToggle; // Callback khi bấm khóa / mở khóa tài khoản
+  final VoidCallback onRoleToggle; // Callback phân quyền
   final VoidCallback onTap; // Callback khi bấm vào toàn bộ card
 
   const UserAccountCard({
@@ -15,6 +16,7 @@ class UserAccountCard extends StatelessWidget {
     required this.onEdit,
     required this.onLockToggle,
     required this.onTap,
+    required this.onRoleToggle,
   });
 
   @override
@@ -23,6 +25,8 @@ class UserAccountCard extends StatelessWidget {
     bool isLocked = user.accountStatus == 'INACTIVE';
     // Kiểm tra user_profile có avatar hay không
     final bool hasAvatar = user.avatarUrl != null && user.avatarUrl!.isNotEmpty;
+    // Kiểm tra role hiện tại để highlight trong menu
+    bool isAdmin = user.role == 'ADMIN';
 
     return Card(
       color: AppColors.backgroundCard,
@@ -40,19 +44,16 @@ class UserAccountCard extends StatelessWidget {
                 CircleAvatar(
                   radius: 24,
                   backgroundColor: AppColors.accent.withAlpha(38),
-                  // Nếu có avatar thì load từ network
-                  // Vì url là một ảnh trên internet không phải ảnh trong app
                   backgroundImage: hasAvatar
                       ? NetworkImage(user.avatarUrl!)
                       : null,
                   child: hasAvatar
                       ? null
                       : const Icon(
-                          // Nếu không có avatar thì hiển thị icon mặc định
-                          Icons.person,
-                          color: AppColors.accent,
-                          size: 26,
-                        ),
+                    Icons.person,
+                    color: AppColors.accent,
+                    size: 26,
+                  ),
                 ),
                 const SizedBox(width: 12),
 
@@ -100,29 +101,33 @@ class UserAccountCard extends StatelessWidget {
                   color: AppColors.backgroundCard,
                   // Xử lý khi chọn menu
                   onSelected: (value) {
-                    if (value == 'edit') onEdit();
-                    if (value == 'lock') onLockToggle();
+                    switch (value) {
+                      case 'edit':
+                        onEdit();
+                        break;
+                      case 'lock':
+                        onLockToggle();
+                        break;
+                      case 'role_admin':
+                        onRoleToggle();
+                        break;
+                      case 'role_user':
+                        onRoleToggle();
+                        break;
+                    }
                   },
                   itemBuilder: (context) => [
-                    // Menu sửa thông tin
+                    // --- Nhóm 1: Thao tác cơ bản ---
                     const PopupMenuItem(
                       value: 'edit',
                       child: Row(
                         children: [
-                          Icon(
-                            Icons.edit,
-                            size: 18,
-                            color: AppColors.textPrimary,
-                          ),
+                          Icon(Icons.edit, size: 18, color: AppColors.textPrimary),
                           SizedBox(width: 8),
-                          Text(
-                            'Sửa thông tin',
-                            style: TextStyle(color: AppColors.textPrimary),
-                          ),
+                          Text('Sửa thông tin', style: TextStyle(color: AppColors.textPrimary)),
                         ],
                       ),
                     ),
-                    // Menu khóa / mở khóa
                     PopupMenuItem(
                       value: 'lock',
                       child: Row(
@@ -135,10 +140,73 @@ class UserAccountCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Text(
                             isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản',
+                            style: TextStyle(color: isLocked ? Colors.green : Colors.red),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // --- Nhóm 2: Phân quyền ---
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      enabled: false, // Mục này chỉ để hiển thị tiêu đề, không bấm được
+                      height: 30,
+                      child: Text(
+                        'PHÂN QUYỀN',
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textSecondary
+                        ),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'role_admin',
+                      child: Row(
+                        children: [
+                          Icon(
+                              Icons.admin_panel_settings,
+                              size: 18,
+                              // Nếu đang là Admin thì highlight màu
+                              color: isAdmin ? AppColors.accent : AppColors.textPrimary
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Admin',
                             style: TextStyle(
-                              color: isLocked ? Colors.green : Colors.red,
+                              // Nếu đang là Admin thì in đậm
+                              color: isAdmin ? AppColors.accent : AppColors.textPrimary,
+                              fontWeight: isAdmin ? FontWeight.bold : FontWeight.normal,
                             ),
                           ),
+                          if (isAdmin) ...[
+                            const Spacer(),
+                            const Icon(Icons.check, size: 16, color: AppColors.accent),
+                          ]
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'role_user',
+                      child: Row(
+                        children: [
+                          Icon(
+                              Icons.person_outline,
+                              size: 18,
+                              color: !isAdmin ? AppColors.accent : AppColors.textPrimary
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'User',
+                            style: TextStyle(
+                              color: !isAdmin ? AppColors.accent : AppColors.textPrimary,
+                              fontWeight: !isAdmin ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                          if (!isAdmin) ...[
+                            const Spacer(),
+                            const Icon(Icons.check, size: 16, color: AppColors.accent),
+                          ]
                         ],
                       ),
                     ),
@@ -154,16 +222,21 @@ class UserAccountCard extends StatelessWidget {
 
   // Widget hiển thị tag (role, status)
   Widget _tag(String text) {
+    // Chọn màu cho role Admin để nổi bật hơn
+    Color tagColor = text == 'ADMIN' ? AppColors.accent.withValues(alpha: 0) : AppColors.surface;
+    Color textColor = text == 'ADMIN' ? AppColors.accent : AppColors.textSecondary;
+    Color borderColor = text == 'ADMIN' ? AppColors.accent : AppColors.border;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: tagColor,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: borderColor),
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+        style: TextStyle(fontSize: 11, color: textColor, fontWeight: text == 'ADMIN' ? FontWeight.bold : FontWeight.normal),
       ),
     );
   }

@@ -9,6 +9,11 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 
+import static nlu.fit.backend.model.auth.Account.AccountRole.ADMIN;
+import static nlu.fit.backend.model.auth.Account.AccountRole.USER;
+import static nlu.fit.backend.model.auth.Account.AccountStatus.ACTIVE;
+import static nlu.fit.backend.model.auth.Account.AccountStatus.INACTIVE;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -61,6 +66,30 @@ public class AuthController {
     public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
         authService.changePassword(request);
 
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/admin/lock")
+    public ResponseEntity<?> lockAccount(@RequestBody EmailRequest request) {
+        authService.changeStatus(request, INACTIVE);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/admin/unlock")
+    public ResponseEntity<?> unlockAccount(@RequestBody EmailRequest request) {
+        authService.changeStatus(request, ACTIVE);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/admin/set-admin")
+    public ResponseEntity<?> setAdmin(@RequestBody EmailRequest request) {
+        authService.changeRole(request, ADMIN);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/admin/set-user")
+    public ResponseEntity<?> setUser(@RequestBody EmailRequest request) {
+        authService.changeRole(request, USER);
         return ResponseEntity.ok().build();
     }
 }

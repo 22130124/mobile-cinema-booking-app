@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../config/app_colors.dart';
-import '../../../dtos/admin/admin_user_management/user_account.dart';
+import '../../../dtos/admin/admin_user_management/user_account_response.dart';
 import 'confirmation_dialog.dart';
 
 class UserFormDialog extends StatefulWidget {
-  final UserAccount? user; // Nếu null là Tạo mới, có dữ liệu là Sửa
-  final Function(UserAccount) onSubmit;
+  final UserAccountResponse? user; // Nếu null là Tạo mới, có dữ liệu là Sửa
+  final Function(UserAccountResponse) onSubmit;
 
   const UserFormDialog({super.key, this.user, required this.onSubmit});
 
@@ -60,7 +60,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
             Navigator.pop(context);
 
             // Tạo model mới (Giả lập)
-            final newUser = UserAccount(
+            final newUser = UserAccountResponse(
               id: widget.user?.id ?? DateTime.now().millisecondsSinceEpoch,
               fullName: _nameCtrl.text,
               email: _emailCtrl.text,
@@ -115,7 +115,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
                   isPassword: true,
                   required: !isEditMode, // Chỉ bắt buộc khi tạo mới
                   readOnly: isEditMode,  // Khóa không cho sửa khi Edit
-                  fillColor: isEditMode ? Colors.grey.withOpacity(0.2) : null,
+                  fillColor: isEditMode ? Colors.grey.withValues(alpha: 0) : null,
                 ),
 
                 // 3. Họ tên
@@ -205,11 +205,13 @@ class _UserFormDialogState extends State<UserFormDialog> {
   Widget _buildRadio(String value, String label) {
     return Row(
       children: [
-        Radio<String>(
-          value: value,
+        RadioGroup<String>(
           groupValue: _gender,
-          activeColor: AppColors.accent,
           onChanged: (v) => setState(() => _gender = v!),
+          child: Radio<String>(
+            value: value,
+            activeColor: AppColors.accent,
+          ),
         ),
         Text(label, style: const TextStyle(color: AppColors.textPrimary)),
       ],

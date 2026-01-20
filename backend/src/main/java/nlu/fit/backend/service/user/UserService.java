@@ -3,9 +3,12 @@ package nlu.fit.backend.service.user;
 import lombok.RequiredArgsConstructor;
 import nlu.fit.backend.dto.upload.response.UploadImageResponse;
 import nlu.fit.backend.dto.user.request.UpdateUserRequest;
+import nlu.fit.backend.dto.user.response.UserAccountResponse;
 import nlu.fit.backend.dto.user.response.UserResponse;
 import nlu.fit.backend.model.User;
+import nlu.fit.backend.model.auth.Account;
 import nlu.fit.backend.repository.UserRepository;
+import nlu.fit.backend.repository.auth.AccountRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -13,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import static nlu.fit.backend.model.User.UserGender.FEMALE;
 import static nlu.fit.backend.model.User.UserGender.MALE;
@@ -23,6 +28,7 @@ import static nlu.fit.backend.model.User.UserStatus.INCOMPLETED;
 @RequiredArgsConstructor
 public class UserService {
     private final UserRepository userRepository;
+    private final AccountRepository accountRepository;
 
     // Phuơng thức tạo một user (empty) khi mới đăng ký tài khoản
     @Transactional
@@ -111,7 +117,6 @@ public class UserService {
         return user.getAvatarPublicId();
     }
 
-
     private UserResponse convertUserToDto(User user) {
         UserResponse userResponse = new UserResponse();
         userResponse.setId(user.getId());
@@ -122,5 +127,26 @@ public class UserService {
         userResponse.setAvatarPublicId(user.getAvatarPublicId());
         userResponse.setStatus(String.valueOf(user.getStatus()));
         return userResponse;
+    }
+
+    public List<UserAccountResponse> getUserAccountList() {
+        List<UserAccountResponse> result = new ArrayList<>();
+        List<Account> accounts = accountRepository.findAll();
+        for (Account a : accounts) {
+            User u = a.getUser();
+            if (u == null) continue;
+            UserAccountResponse userAccountResponse = new UserAccountResponse();
+            userAccountResponse.setId(u.getId());
+            userAccountResponse.setFullName(u.getFullName());
+            userAccountResponse.setGender(String.valueOf(u.getGender()));
+            userAccountResponse.setPhone(u.getPhone());
+            userAccountResponse.setAvatarUrl(u.getAvatarUrl());
+            userAccountResponse.setUserStatus(String.valueOf(u.getStatus()));
+            userAccountResponse.setEmail(a.getEmail());
+            userAccountResponse.setRole(String.valueOf(a.getRole()));
+            userAccountResponse.setAccountStatus(String.valueOf(a.getStatus()));
+            result.add(userAccountResponse);
+        }
+        return result;
     }
 }

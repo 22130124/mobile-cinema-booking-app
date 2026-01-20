@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../config/app_colors.dart';
-import '../../../dtos/admin/admin_user_management/user_account.dart';
+import '../../../dtos/admin/admin_user_management/user_account_response.dart';
 
 // Dialog hiển thị chi tiết thông tin người dùng
 class UserDetailDialog extends StatelessWidget {
-  final UserAccount user; // Thông tin user_profile cần hiển thị
+  final UserAccountResponse user; // Thông tin user_profile cần hiển thị
   final VoidCallback? onEdit; // Cho phép bấm sửa ngay từ màn hình chi tiết
 
   const UserDetailDialog({super.key, required this.user, this.onEdit});

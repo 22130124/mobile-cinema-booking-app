@@ -4,6 +4,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import nlu.fit.backend.dto.auth.request.*;
 import nlu.fit.backend.dto.auth.response.LoginResponse;
@@ -306,6 +307,23 @@ public class AuthService {
 
         // Cập nhật lại mật khẩu
         account.setPassword(hashedPassword);
+        accountRepository.save(account);
+    }
+
+    @Transactional
+    public void changeStatus(EmailRequest request, Account.AccountStatus accountStatus) {
+        // Lấy ra account tương ứng với email
+        Account account = accountRepository.findByEmail(request.getEmail()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy tài khoản"));
+        account.setStatus(accountStatus);
+        accountRepository.save(account);
+    }
+
+    public void changeRole(EmailRequest request, Account.AccountRole accountRole) {
+        // Lấy ra account tương ứng với email
+        Account account = accountRepository.findByEmail(request.getEmail()).orElseThrow(() ->
+                new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy tài khoản"));
+        account.setRole(accountRole);
         accountRepository.save(account);
     }
 }
