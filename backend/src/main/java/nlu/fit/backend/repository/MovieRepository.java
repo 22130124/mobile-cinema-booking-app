@@ -22,6 +22,10 @@ public interface MovieRepository extends JpaRepository<Movie, Long> {
     //Lấy phim sắp chiếu (status = 2)
     @Query("SELECT m FROM Movie m WHERE m.status = 2")
     List<Movie> findComingSoonMovies();
+    
+    //Lấy phim đã ngừng chiếu (status = 3)
+    @Query("SELECT m FROM Movie m WHERE m.status = 3")
+    List<Movie> findEndedMovies();
 
     //Lấy phim phổ biến (rating >= 4.0, đang chiếu hoặc đặc biệt)
     @Query("SELECT m FROM Movie m WHERE m.rating >= 4.0 AND m.status = 1 ORDER BY m.rating DESC")
