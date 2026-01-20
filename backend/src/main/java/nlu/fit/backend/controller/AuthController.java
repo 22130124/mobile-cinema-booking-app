@@ -3,6 +3,7 @@ package nlu.fit.backend.controller;
 import lombok.RequiredArgsConstructor;
 import nlu.fit.backend.dto.auth.request.*;
 import nlu.fit.backend.dto.auth.response.LoginResponse;
+import nlu.fit.backend.service.account.AccountService;
 import nlu.fit.backend.service.auth.AuthService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +20,7 @@ import static nlu.fit.backend.model.auth.Account.AccountStatus.INACTIVE;
 @RequiredArgsConstructor
 public class AuthController {
     private final AuthService authService;
+    private final AccountService accountService;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -71,25 +73,25 @@ public class AuthController {
 
     @PutMapping("/admin/lock")
     public ResponseEntity<?> lockAccount(@RequestBody EmailRequest request) {
-        authService.changeStatus(request, INACTIVE);
+        accountService.changeStatus(request, INACTIVE);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/admin/unlock")
     public ResponseEntity<?> unlockAccount(@RequestBody EmailRequest request) {
-        authService.changeStatus(request, ACTIVE);
+        accountService.changeStatus(request, ACTIVE);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/admin/set-admin")
     public ResponseEntity<?> setAdmin(@RequestBody EmailRequest request) {
-        authService.changeRole(request, ADMIN);
+        accountService.changeRole(request, ADMIN);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/admin/set-user")
     public ResponseEntity<?> setUser(@RequestBody EmailRequest request) {
-        authService.changeRole(request, USER);
+        accountService.changeRole(request, USER);
         return ResponseEntity.ok().build();
     }
 }

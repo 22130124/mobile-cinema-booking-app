@@ -1,4 +1,4 @@
-package nlu.fit.backend.dto.user.response;
+package nlu.fit.backend.dto.admin.user_management.response;
 
 import lombok.Data;
 

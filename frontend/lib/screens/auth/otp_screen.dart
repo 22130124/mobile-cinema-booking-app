@@ -176,7 +176,7 @@ class _OtpScreenState extends State<OtpScreen> {
                         // Nếu OTP đúng, chuyển sang trang login
                         if (!context.mounted) return; //
                         switch (widget.type) {
-                          case "register":
+                          case "verify_email":
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(

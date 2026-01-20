@@ -8,6 +8,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../../storage/jwt_token_storage.dart';
 import '../admin/dashboard_screen.dart';
+import 'otp_screen.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../../widgets/auth/custom_textfield.dart';
@@ -49,7 +50,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Hàm xử lý khi đăng nhập (thường/google) thành công
   Future<void> _handleLoginSuccess({
-    required String jwtToken, required bool? userStatus,
+    required String jwtToken,
+    required bool userStatus,
+    required String accountStatus,
   }) async {
     // Decode JWT
     final payload = JwtDecoder.decode(jwtToken);
@@ -61,39 +64,50 @@ class _LoginScreenState extends State<LoginScreen> {
     // Kiểm tra trạng thái context
     if (!mounted) return;
 
-    // Dựa vào role để quyết định trang đích sẽ được chuyển đến
-    switch (role) {
-      case "USER":
+    // Kiểm tra trạng thái tài khoản (UNVERIFIED/ACTIVE/INACTIVE)
+    if (accountStatus == 'UNVERIFIED') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) =>
+              OtpScreen(email: _emailController.text, type: "verify_email"),
+        ),
+      );
+    } else {
+      // Dựa vào role để quyết định trang đích sẽ được chuyển đến
+      switch (role) {
+        case "USER":
         // Nếu là user_profile mới đăng ký tài khoản thì sẽ chuyển vào trang hồ sơ người dùng
-        if (userStatus == false) {
+          if (userStatus == false) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const ProfileInfoScreen()),
+                  (_) => false,
+            );
+          } else {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
+                  (_) => false,
+            );
+          }
+          break;
+
+        case "ADMIN":
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (_) => const ProfileInfoScreen()),
-            (_) => false,
+            MaterialPageRoute(builder: (_) => const AdminUserManagementScreen()),
+                (_) => false,
           );
-        } else {
+          break;
+
+        default:
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => const HomeScreen()),
-            (_) => false,
+                (_) => false,
           );
-        }
-        break;
-
-      case "ADMIN":
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const AdminUserManagementScreen()),
-          (_) => false,
-        );
-        break;
-
-      default:
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-          (_) => false,
-        );
+      }
     }
   }
 
@@ -200,10 +214,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Lấy ra JWT Token từ kết quả trả về từ API
                         final jwtToken = result.jwtToken;
                         final userStatus = result.userStatus;
+                        final accountStatus = result.accountStatus;
 
                         await _handleLoginSuccess(
                           jwtToken: jwtToken,
                           userStatus: userStatus,
+                          accountStatus: accountStatus,
                         );
                       } catch (e) {
                         if (!context.mounted) return;
@@ -246,50 +262,61 @@ class _LoginScreenState extends State<LoginScreen> {
                     // Link icon Google
                     iconUrl:
                         "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
-                    onTapAsync: _googleReady ? () async {
-                      // Hiển thị biểu tượng loading
-                      setState(() => _isLoginGoogleLoading = true);
+                    onTapAsync: _googleReady
+                        ? () async {
+                            // Hiển thị biểu tượng loading
+                            setState(() => _isLoginGoogleLoading = true);
 
-                      try {
-                        // Dùng authenticate()
-                        // Hàm này yêu cầu try-catch vì nó sẽ throw Exception nếu user hủy
-                        final GoogleSignInAccount googleUser = await _googleSignIn.authenticate();
+                            try {
+                              // Dùng authenticate()
+                              // Hàm này yêu cầu try-catch vì nó sẽ throw Exception nếu user hủy
+                              final GoogleSignInAccount googleUser =
+                                  await _googleSignIn.authenticate();
 
-                        // Lấy thông tin authentication (chứa idToken)
-                        final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+                              // Lấy thông tin authentication (chứa idToken)
+                              final GoogleSignInAuthentication googleAuth =
+                                  googleUser.authentication;
 
-                        // Kiểm tra idToken
-                        if (googleAuth.idToken == null) {
-                          throw Exception("Không lấy được Google ID Token");
-                        }
+                              // Kiểm tra idToken
+                              if (googleAuth.idToken == null) {
+                                throw Exception(
+                                  "Không lấy được Google ID Token",
+                                );
+                              }
 
-                        // Gửi idToken về Backend Spring Boot
-                        final result = await AuthService().loginWithGoogle(googleAuth.idToken!);
+                              // Gửi idToken về Backend Spring Boot
+                              final result = await AuthService()
+                                  .loginWithGoogle(googleAuth.idToken!);
 
-                        // Xử lý nếu đăng nhập thành công
-                        await _handleLoginSuccess(
-                          jwtToken: result.jwtToken,
-                          userStatus: result.userStatus,
-                        );
-                      } catch (e) {
-                        // Xử lý lỗi hoặc người dùng hủy
-                        print("Đăng nhập Google thất bại: $e");
+                              // Xử lý nếu đăng nhập thành công
+                              await _handleLoginSuccess(
+                                jwtToken: result.jwtToken,
+                                userStatus: result.userStatus,
+                                accountStatus: result.accountStatus
+                              );
+                            } catch (e) {
+                              // Xử lý lỗi hoặc người dùng hủy
+                              print("Đăng nhập Google thất bại: $e");
 
-                        if (!context.mounted) return;
+                              if (!context.mounted) return;
 
-                        // Nếu không phải do người dùng hủy thì mới hiện thông báo
-                        ScaffoldMessenger.of(
-                          context,
-                        ).showSnackBar(SnackBar(content: Text("Đăng nhập thất bại: $e")));
+                              // Nếu không phải do người dùng hủy thì mới hiện thông báo
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("Đăng nhập thất bại: $e"),
+                                ),
+                              );
 
-                        debugPrint(e.toString());
+                              debugPrint(e.toString());
 
-                        // Logout để reset trạng thái
-                        _googleSignIn.signOut();
-                      } finally {
-                        if (mounted) setState(() => _isLoginGoogleLoading = false);
-                      }
-                    } : null,
+                              // Logout để reset trạng thái
+                              _googleSignIn.signOut();
+                            } finally {
+                              if (mounted)
+                                setState(() => _isLoginGoogleLoading = false);
+                            }
+                          }
+                        : null,
                     isLoading: _isLoginGoogleLoading,
                   ),
 

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../config/app_colors.dart';
-import '../../../dtos/admin/admin_user_management/user_account_response.dart';
+import '../../../model/admin/admin_user_management/user_info.dart';
 
 // Dialog hiển thị chi tiết thông tin người dùng
 class UserDetailDialog extends StatelessWidget {
-  final UserAccountResponse user; // Thông tin user_profile cần hiển thị
+  final UserInfo user; // Thông tin user_profile cần hiển thị
   final VoidCallback? onEdit; // Cho phép bấm sửa ngay từ màn hình chi tiết
 
   const UserDetailDialog({super.key, required this.user, this.onEdit});
@@ -53,8 +53,8 @@ class UserDetailDialog extends StatelessWidget {
                       const SizedBox(height: 16),
                       // Tên người dùng
                       Text(
-                        user.fullName.isNotEmpty
-                            ? user.fullName
+                        user.fullName?.isNotEmpty == true
+                            ? user.fullName!
                             : 'Chưa cập nhật',
                         style: const TextStyle(
                           fontSize: 20,
@@ -70,11 +70,11 @@ class UserDetailDialog extends StatelessWidget {
                         alignment: WrapAlignment.center,
                         children: [
                           _statusBadge(
-                            user.role,
+                            user.role ?? 'Chưa cập nhật',
                             Colors.blue,
                           ),
                           _statusBadge(
-                            user.accountStatus,
+                            user.accountStatus ?? 'Chưa cập nhật',
                             user.accountStatus == 'ACTIVE'
                                 ? Colors.green
                                 : Colors.red,
@@ -93,17 +93,25 @@ class UserDetailDialog extends StatelessWidget {
                 _buildInfoRow(
                   Icons.phone_outlined,
                   'Số điện thoại',
-                  user.phone.isNotEmpty ? user.phone : 'Chưa cập nhật',
+                  user.phone?.isNotEmpty == true
+                      ? user.phone!
+                      : 'Chưa cập nhật',
                 ),
+
                 _buildInfoRow(
                   Icons.wc,
                   'Giới tính',
-                  user.gender == 'MALE' ? 'Nam' : 'Nữ',
+                  user.gender == 'MALE'
+                      ? 'Nam'
+                      : user.gender == 'FEMALE'
+                      ? 'Nữ'
+                      : 'Chưa cập nhật',
                 ),
+
                 _buildInfoRow(
                   Icons.verified_user_outlined,
                   'Trạng thái hồ sơ',
-                  user.userStatus,
+                  user.userStatus ?? 'Chưa cập nhật',
                 ),
                 _buildInfoRow(Icons.key, 'ID Hệ thống', '#${user.id}'),
 

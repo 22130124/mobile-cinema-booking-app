@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../config/app_colors.dart';
-import '../../../dtos/admin/admin_user_management/user_account_response.dart';
+import '../../../model/admin/admin_user_management/user_info.dart';
 import 'confirmation_dialog.dart';
 
 class UserFormDialog extends StatefulWidget {
-  final UserAccountResponse? user; // Nếu null là Tạo mới, có dữ liệu là Sửa
-  final Function(UserAccountResponse) onSubmit;
+  final UserInfo? user; // Nếu null là Tạo mới, có dữ liệu là Sửa
+  final Future<bool> Function(UserInfo) onSubmit;
 
   const UserFormDialog({super.key, this.user, required this.onSubmit});
 
@@ -25,16 +25,24 @@ class _UserFormDialogState extends State<UserFormDialog> {
 
   bool get isEditMode => widget.user != null;
 
+  // Hàm kiểm tra định dạng email
+  bool isValidEmail(String email) {
+    final emailRegex = RegExp(
+      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+    );
+    return emailRegex.hasMatch(email);
+  }
+
+
   @override
   void initState() {
     super.initState();
     _emailCtrl = TextEditingController(text: widget.user?.email ?? '');
     _nameCtrl = TextEditingController(text: widget.user?.fullName ?? '');
     _phoneCtrl = TextEditingController(text: widget.user?.phone ?? '');
-    // Ở chế độ Edit, hiển thị placeholder cho pass vì không xem được pass cũ
-    _passCtrl = TextEditingController(text: isEditMode ? '********' : '');
+    _passCtrl = TextEditingController();
     if (isEditMode) {
-      _gender = widget.user!.gender;
+      _gender = widget.user!.gender!;
     }
   }
 
@@ -55,24 +63,27 @@ class _UserFormDialogState extends State<UserFormDialog> {
         builder: (context) => ConfirmationDialog(
           title: isEditMode ? 'Xác nhận cập nhật' : 'Xác nhận tạo mới',
           content: 'Bạn có chắc chắn muốn lưu thông tin này không?',
-          onConfirm: () {
-            // Đóng Form Dialog
-            Navigator.pop(context);
-
-            // Tạo model mới (Giả lập)
-            final newUser = UserAccountResponse(
+          onConfirm: () async {
+            // Tạo model mới
+            final updatedUser = UserInfo(
               id: widget.user?.id ?? DateTime.now().millisecondsSinceEpoch,
               fullName: _nameCtrl.text,
               email: _emailCtrl.text,
               phone: _phoneCtrl.text,
               gender: _gender,
-              // Giữ nguyên giá trị cũ hoặc set mặc định
               userStatus: widget.user?.userStatus ?? 'INCOMPLETED',
               role: widget.user?.role ?? 'USER',
-              accountStatus: widget.user?.accountStatus ?? 'ACTIVE',
+              accountStatus: widget.user?.accountStatus ?? 'UNVERIFIED',
+              avatarUrl: widget.user?.avatarUrl,
+              password: isEditMode ? null : _passCtrl.text,
             );
 
-            widget.onSubmit(newUser);
+            final success = await widget.onSubmit(updatedUser);
+            if (!context.mounted) return;
+
+            if (success) {
+              Navigator.of(context).pop();
+            }
           },
         ),
       );
@@ -101,34 +112,35 @@ class _UserFormDialogState extends State<UserFormDialog> {
                 ),
                 const SizedBox(height: 20),
 
-                // 1. Email
+                // Email
                 _buildTextField(
                   label: 'Email',
+                  isEmail: true,
                   controller: _emailCtrl,
                   required: true,
                 ),
 
-                // 2. Mật khẩu (Logic khóa khi Edit)
-                _buildTextField(
-                  label: 'Mật khẩu',
-                  controller: _passCtrl,
-                  isPassword: true,
-                  required: !isEditMode, // Chỉ bắt buộc khi tạo mới
-                  readOnly: isEditMode,  // Khóa không cho sửa khi Edit
-                  fillColor: isEditMode ? Colors.grey.withValues(alpha: 0) : null,
-                ),
+                // Password
+                // Chỉ hiển thị khi không phải là Edit Mode
+                if (!isEditMode)
+                  _buildTextField(
+                    label: 'Mật khẩu',
+                    controller: _passCtrl,
+                    isPassword: true, // Tận dụng thuộc tính có sẵn của helper
+                    required: true,   // Bắt buộc nhập khi tạo mới
+                  ),
 
-                // 3. Họ tên
+                // Họ tên
                 _buildTextField(label: 'Họ và tên', controller: _nameCtrl),
 
-                // 4. Số điện thoại
+                // Số điện thoại
                 _buildTextField(
                   label: 'Số điện thoại',
                   controller: _phoneCtrl,
                   keyboardType: TextInputType.phone,
                 ),
 
-                // 5. Giới tính
+                // Giới tính
                 const Text('Giới tính', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
                 Row(
                   children: [
@@ -172,6 +184,7 @@ class _UserFormDialogState extends State<UserFormDialog> {
     required TextEditingController controller,
     bool isPassword = false,
     bool required = false,
+    bool isEmail = false,
     bool readOnly = false,
     Color? fillColor,
     TextInputType? keyboardType,
@@ -195,9 +208,17 @@ class _UserFormDialogState extends State<UserFormDialog> {
             borderRadius: BorderRadius.circular(8),
           ),
         ),
-        validator: required
-            ? (v) => (v == null || v.isEmpty) ? 'Vui lòng nhập $label' : null
-            : null,
+        validator: (v) {
+          if (required && (v == null || v.isEmpty)) {
+            return 'Vui lòng nhập $label';
+          }
+
+          if (isEmail && v != null && v.isNotEmpty && !isValidEmail(v)) {
+            return 'Email không đúng định dạng';
+          }
+
+          return null;
+        },
       ),
     );
   }

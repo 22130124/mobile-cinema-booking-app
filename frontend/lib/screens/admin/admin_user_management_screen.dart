@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/services/user/user_service.dart';
 import '../../config/app_colors.dart';
-import '../../dtos/admin/admin_user_management/user_account_response.dart';
+import '../../model/admin/admin_user_management/user_info.dart';
 import '../../services/auth/auth_service.dart';
 import '../../widgets/admin/user_management/confirmation_dialog.dart';
 import '../../widgets/admin/user_management/dropdown.dart';
@@ -21,7 +21,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   // Biến lưu giá trị filter hiện tại. Null nghĩa là chọn "All" (Tất cả).
   String? roleFilter;
   String? statusFilter;
-  List<UserAccountResponse> data = []; // data hiển thị
+  List<UserInfo> data = []; // data hiển thị
 
   @override
   void initState() {
@@ -52,7 +52,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   }
 
   // Hàm mở modal chi tiết
-  void _viewUserDetail(UserAccountResponse user) {
+  void _viewUserDetail(UserInfo user) {
     showDialog(
       context: context,
       builder: (_) => UserDetailDialog(
@@ -67,7 +67,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   // Hàm mở modal thêm/chỉnh sửa thông tin user_profile
   // Nếu [user_profile] == null => Chế độ Thêm mới (Create).
   // Nếu [user_profile] != null => Chế độ Chỉnh sửa (Edit).
-  void _openUserForm({UserAccountResponse? user}) {
+  void _openUserForm({UserInfo? user}) {
     showDialog(
       context: context,
       // Bắt buộc người dùng phải bấm nút Lưu hoặc Hủy, không bấm ra ngoài được.
@@ -75,25 +75,49 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
       builder: (_) => UserFormDialog(
         user: user,
         // Callback nhận về dữ liệu user_profile sau khi người dùng bấm submit
-        onSubmit: (updatedUser) {
-          setState(() {
-            if (user == null) {
-              // Logic Thêm mới: Insert vào đầu list để dễ thấy
-              data.insert(0, updatedUser);
+        onSubmit: (updatedUser) async {
+          if (user == null) {
+            try {
+              // Gọi API tạo user mới
+              await UserService().createNewUserFromAdmin(updatedUser);
+
+              // Insert vào đầu list để dễ thấy
+              setState(() {
+                data.insert(0, updatedUser);
+              });
+
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Tạo tài khoản thành công!')),
+                const SnackBar(content: Text('Tạo người dùng mới thành công')),
               );
-            } else {
-              // Logic Cập nhật: Tìm và thay thế thông tin
+
+              return true;
+            } catch (e) {
+              _showError(e.toString());
+              return false;
+            }
+          } else {
+            // Logic Cập nhật: Tìm và thay thế thông tin
+            try {
+              // Gọi API cập nhật thông tin
+              await UserService().updateUserInfo(updatedUser);
+
               final index = data.indexWhere((u) => u.id == user.id);
               if (index != -1) {
-                data[index] = updatedUser;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Cập nhật thành công!')),
-                );
+                setState(() {
+                  data[index] = updatedUser;
+                });
               }
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Cập nhật thông tin thành công')),
+              );
+
+              return true;
+            } catch (e) {
+              _showError(e.toString());
+              return false;
             }
-          });
+          }
         },
       ),
     );
@@ -101,7 +125,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
 
   // Hàm xử lý khóa/mở khóa
   // Hiển thị dialog xác nhận trước khi thực hiện hành động.
-  void _toggleLockUser(UserAccountResponse user) {
+  void _toggleLockUser(UserInfo user) {
     final isCurrentlyLocked = user.accountStatus == 'INACTIVE';
 
     showDialog(
@@ -151,7 +175,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
 
   // Hàm xử lý khóa/mở khóa
   // Hiển thị dialog xác nhận trước khi thực hiện hành động.
-  void _toggleChangeRole(UserAccountResponse user) {
+  void _toggleChangeRole(UserInfo user) {
     final isAdmin = user.role == 'ADMIN';
 
     showDialog(
@@ -174,9 +198,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
             final index = data.indexWhere((u) => u.id == user.id);
             if (index != -1) {
               setState(() {
-                data[index] = user.copyWith(
-                  role: isAdmin ? 'USER' : 'ADMIN',
-                );
+                data[index] = user.copyWith(role: isAdmin ? 'USER' : 'ADMIN');
               });
             }
 
@@ -184,9 +206,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(
-                  isAdmin
-                      ? 'Đã chuyển quyền về User'
-                      : 'Đã cấp quyền Admin',
+                  isAdmin ? 'Đã chuyển quyền về User' : 'Đã cấp quyền Admin',
                 ),
               ),
             );
@@ -204,9 +224,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
       context: context,
       barrierDismissible: false,
       useRootNavigator: true,
-      builder: (_) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
   }
 
@@ -215,9 +233,9 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -301,9 +319,9 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
           value: statusFilter,
           items: const {
             null: 'Tất cả',
-            'ACTIVE': 'Active',
-            'INACTIVE': 'Inactive',
-            'UNVERIFIED': 'Unverified',
+            'ACTIVE': 'Hoạt động',
+            'INACTIVE': 'Bị khóa',
+            'UNVERIFIED': 'Chờ xác thực',
           },
           onChanged: (v) => setState(() => statusFilter = v),
         ),

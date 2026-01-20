@@ -19,6 +19,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isObscure = true;
   bool _isLoading = false;
 
+  // Hàm kiểm tra định dạng email
+  bool isValidEmail(String email) {
+    final emailRegex = RegExp(
+      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+    );
+    return emailRegex.hasMatch(email);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,6 +112,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return;
                   }
 
+                  // Kiểm tra email đúng định dạng
+                  if (!isValidEmail(email)) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Email không đúng định dạng"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Kiểm tra độ dài mật khẩu
+                  if (pass.length < 8) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Mật khẩu phải có ít nhất 8 ký tự"),
+                      ),
+                    );
+                    return;
+                  }
+
                   // Kiểm tra mật khẩu có khớp hay không
                   if (pass != confirmPass) {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -129,7 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (_) =>
-                            OtpScreen(email: email, type: "register"),
+                            OtpScreen(email: email, type: "verify_email"),
                       ),
                     );
                   } catch (e) {

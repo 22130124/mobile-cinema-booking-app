@@ -2,8 +2,10 @@ package nlu.fit.backend.controller;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import nlu.fit.backend.dto.admin.user_management.request.CreateNewUserRequest;
+import nlu.fit.backend.dto.admin.user_management.request.UpdateUserInfoRequest;
 import nlu.fit.backend.dto.user.request.UpdateUserRequest;
-import nlu.fit.backend.dto.user.response.UserAccountResponse;
+import nlu.fit.backend.dto.admin.user_management.response.UserAccountResponse;
 import nlu.fit.backend.dto.user.response.UserResponse;
 import nlu.fit.backend.service.user.UserService;
 import org.springframework.http.ResponseEntity;
@@ -35,5 +37,17 @@ public class UserController {
     public ResponseEntity<?> getUserAccountList() {
         List<UserAccountResponse> result = userService.getUserAccountList();
         return ResponseEntity.ok().body(result);
+    }
+
+    @PostMapping("/admin")
+    public ResponseEntity<?> createNewUser(@RequestBody CreateNewUserRequest request) {
+        userService.createNewUser(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/admin")
+    public ResponseEntity<?> updateUserInfo(@RequestBody UpdateUserInfoRequest request) {
+        userService.updateUserInfo(request);
+        return ResponseEntity.ok().build();
     }
 }

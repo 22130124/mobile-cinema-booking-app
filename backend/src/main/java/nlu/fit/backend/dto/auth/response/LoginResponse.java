@@ -6,4 +6,5 @@ import lombok.Data;
 public class LoginResponse {
     private String jwtToken;
     private boolean userStatus;
+    private String accountStatus;
 }

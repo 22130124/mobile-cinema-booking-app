@@ -16,6 +16,7 @@ import nlu.fit.backend.repository.auth.AccountRepository;
 import nlu.fit.backend.repository.auth.EmailOtpRepository;
 import nlu.fit.backend.repository.auth.PasswordResetTokenRepository;
 import nlu.fit.backend.service.MailService;
+import nlu.fit.backend.service.account.AccountService;
 import nlu.fit.backend.service.user.UserService;
 import nlu.fit.backend.util.JwtUtil;
 import nlu.fit.backend.util.OtpUtil;
@@ -49,37 +50,53 @@ public class AuthService {
     private final JwtUtil jwt;
     private final MailService mailService;
     private final UserService userService;
+    private final AccountService accountService;
 
     @Value("${google.oauth.client-id}")
     private String googleClientId;
 
     // Phương thức đăng nhập tài khoản
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         // Tìm tài khoản theo email
         Account account = accountRepository.findByEmail(request.getEmail()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thông tin đăng nhập không chính xác"));
-        // So khớp mật khẩu
-        if (!passwordEncoder.matches(request.getPassword(), account.getPassword()))
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thông tin đăng nhập không chính xác");
+
+        // Kiểm tra email đã được xác minh hay chưa
+        if (account.getStatus() == UNVERIFIED) {
+            sendOtp(account.getEmail(), REGISTER);
+            return createLoginResponse(account, false);
+        } else {
+            if (!passwordEncoder.matches(request.getPassword(), account.getPassword()))
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thông tin đăng nhập không chính xác");
+            if (account.getStatus() == INACTIVE) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
+            }
+        }
 
         // Trả về login response
-        return createLoginResponse(account);
+        return createLoginResponse(account, true);
     }
 
     // Phương thức hỗ trợ trả về response cho yêu cầu đăng nhập (jwtToken & trạng thái hoàn thiện hồ sơ người dùng)
-    public LoginResponse createLoginResponse(Account account) {
+    public LoginResponse createLoginResponse(Account account, boolean isSuccess) {
         // Tạo response trả về
         LoginResponse loginResponse = new LoginResponse();
-        // Tạo và gán giá trị jwt token vào response
-        String jwtToken = jwt.generate(account.getEmail(), account.getUser().getId(), String.valueOf(account.getRole()));
-        loginResponse.setJwtToken(jwtToken);
-        // Tìm và gán giá trị userStatus (true/false) vào response
-        // Để frontend biết được hồ sơ người dùng đã hoàn thiện chưa
-        // Để quyết định chuyển hướng vào trang chủ hay trang hồ sơ người dùng để cập nhật thông tin cho đầy đủ
-        if (account.getRole() == USER) {
-            boolean userStatus = userService.getUserStatus(account.getUser());
-            loginResponse.setUserStatus(userStatus);
+        if (isSuccess) {
+            // Tạo và gán giá trị jwt token vào response
+            String jwtToken = jwt.generate(account.getEmail(), account.getUser().getId(), String.valueOf(account.getRole()));
+            loginResponse.setJwtToken(jwtToken);
+            // Tìm và gán giá trị userStatus (true/false) vào response
+            // Để frontend biết được hồ sơ người dùng đã hoàn thiện chưa
+            // Để quyết định chuyển hướng vào trang chủ hay trang hồ sơ người dùng để cập nhật thông tin cho đầy đủ
+            if (account.getRole() == USER) {
+                boolean userStatus = userService.getUserStatus(account.getUser());
+                loginResponse.setUserStatus(userStatus);
+            }
         }
+        // Gán giá trị accountStatus vào response
+        // Để phát hiện tài khoản chưa xác minh email hoặc đã bị khóa
+        loginResponse.setAccountStatus(String.valueOf(account.getStatus()));
         return loginResponse;
     }
 
@@ -104,7 +121,7 @@ public class AuthService {
             Account account = accountRepository.findByEmail(email)
                     .orElseGet(() -> createNewAccountAndUser(email, null, "google"));
 
-            return createLoginResponse(account);
+            return createLoginResponse(account, true);
 
         } catch (GeneralSecurityException | IOException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lỗi khi xác thực Google token: " + e.getMessage());
@@ -272,16 +289,8 @@ public class AuthService {
                         HttpStatus.BAD_REQUEST, "Yêu cầu thay đổi mật khẩu đã hết hạn");
             }
 
-            // Tìm tài khoản theo email
-            Account account = accountRepository.findByEmail(request.getEmail()).orElseThrow(() ->
-                    new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thông tin đăng nhập không chính xác"));
-
-            // Mã hóa thông tin password từ request
-            String hashedPassword = passwordEncoder.encode(request.getPassword());
-
-            // Cập nhật lại mật khẩu
-            account.setPassword(hashedPassword);
-            accountRepository.save(account);
+            // Thực hiện thay đổi mật khẩu
+            accountService.changePassword(request.getEmail(), request.getPassword());
         } finally {
             // Xóa token trong database
             passwordResetTokenRepository.delete(resetToken);
@@ -307,23 +316,6 @@ public class AuthService {
 
         // Cập nhật lại mật khẩu
         account.setPassword(hashedPassword);
-        accountRepository.save(account);
-    }
-
-    @Transactional
-    public void changeStatus(EmailRequest request, Account.AccountStatus accountStatus) {
-        // Lấy ra account tương ứng với email
-        Account account = accountRepository.findByEmail(request.getEmail()).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy tài khoản"));
-        account.setStatus(accountStatus);
-        accountRepository.save(account);
-    }
-
-    public void changeRole(EmailRequest request, Account.AccountRole accountRole) {
-        // Lấy ra account tương ứng với email
-        Account account = accountRepository.findByEmail(request.getEmail()).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy tài khoản"));
-        account.setRole(accountRole);
         accountRepository.save(account);
     }
 }

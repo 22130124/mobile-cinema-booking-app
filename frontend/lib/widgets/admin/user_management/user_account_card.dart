@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../config/app_colors.dart';
-import '../../../dtos/admin/admin_user_management/user_account_response.dart';
+import '../../../model/admin/admin_user_management/user_info.dart';
 
 class UserAccountCard extends StatelessWidget {
-  final UserAccountResponse user; // Thông tin user_profile cần hiển thị
+  final UserInfo user; // Thông tin user_profile cần hiển thị
   final VoidCallback onEdit; // Callback khi bấm sửa thông tin
   final VoidCallback onLockToggle; // Callback khi bấm khóa / mở khóa tài khoản
   final VoidCallback onRoleToggle; // Callback phân quyền
@@ -21,11 +21,9 @@ class UserAccountCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Kiểm tra tài khoản có đang bị khóa không
     bool isLocked = user.accountStatus == 'INACTIVE';
-    // Kiểm tra user_profile có avatar hay không
+    bool isUnverified = user.accountStatus == 'UNVERIFIED';
     final bool hasAvatar = user.avatarUrl != null && user.avatarUrl!.isNotEmpty;
-    // Kiểm tra role hiện tại để highlight trong menu
     bool isAdmin = user.role == 'ADMIN';
 
     return Card(
@@ -64,8 +62,8 @@ class UserAccountCard extends StatelessWidget {
                     children: [
                       // Tên người dùng
                       Text(
-                        user.fullName.isNotEmpty
-                            ? user.fullName
+                        user.fullName?.isNotEmpty == true
+                            ? user.fullName!
                             : 'Chưa cập nhật',
                         style: const TextStyle(
                           color: AppColors.textPrimary,
@@ -84,8 +82,8 @@ class UserAccountCard extends StatelessWidget {
                       Wrap(
                         spacing: 8,
                         children: [
-                          _tag(user.role),
-                          _tag(user.accountStatus),
+                          _tag(user.role ?? 'Chưa cập nhật'),
+                          _tag(user.accountStatus ?? 'Chưa cập nhật'),
                         ],
                       ),
                     ],
@@ -117,7 +115,7 @@ class UserAccountCard extends StatelessWidget {
                     }
                   },
                   itemBuilder: (context) => [
-                    // --- Nhóm 1: Thao tác cơ bản ---
+                    // Nhóm 1: Thao tác cơ bản
                     const PopupMenuItem(
                       value: 'edit',
                       child: Row(
@@ -128,6 +126,7 @@ class UserAccountCard extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (!isUnverified)
                     PopupMenuItem(
                       value: 'lock',
                       child: Row(
@@ -146,7 +145,7 @@ class UserAccountCard extends StatelessWidget {
                       ),
                     ),
 
-                    // --- Nhóm 2: Phân quyền ---
+                    // Nhóm 2: Phân quyền
                     const PopupMenuDivider(),
                     const PopupMenuItem(
                       enabled: false, // Mục này chỉ để hiển thị tiêu đề, không bấm được
@@ -222,10 +221,46 @@ class UserAccountCard extends StatelessWidget {
 
   // Widget hiển thị tag (role, status)
   Widget _tag(String text) {
-    // Chọn màu cho role Admin để nổi bật hơn
-    Color tagColor = text == 'ADMIN' ? AppColors.accent.withValues(alpha: 0) : AppColors.surface;
-    Color textColor = text == 'ADMIN' ? AppColors.accent : AppColors.textSecondary;
-    Color borderColor = text == 'ADMIN' ? AppColors.accent : AppColors.border;
+    Color tagColor;
+    Color textColor;
+    Color borderColor;
+
+    switch (text) {
+      case 'ADMIN':
+        tagColor = AppColors.accent.withAlpha(25);
+        textColor = AppColors.accent;
+        borderColor = AppColors.accent;
+        break;
+
+      case 'USER':
+        tagColor = Colors.blue.withAlpha(25);
+        textColor = Colors.blue;
+        borderColor = Colors.blue;
+        break;
+
+      case 'ACTIVE':
+        tagColor = Colors.green.withAlpha(25);
+        textColor = Colors.green;
+        borderColor = Colors.green;
+        break;
+
+      case 'INACTIVE':
+        tagColor = Colors.red.withAlpha(25);
+        textColor = Colors.red;
+        borderColor = Colors.red;
+        break;
+
+      case 'UNVERIFIED':
+        tagColor = Colors.red.withAlpha(25);
+        textColor = Colors.red;
+        borderColor = Colors.red;
+        break;
+
+      default:
+        tagColor = AppColors.surface;
+        textColor = AppColors.textSecondary;
+        borderColor = AppColors.border;
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -236,7 +271,11 @@ class UserAccountCard extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: TextStyle(fontSize: 11, color: textColor, fontWeight: text == 'ADMIN' ? FontWeight.bold : FontWeight.normal),
+        style: TextStyle(
+          fontSize: 11,
+          color: textColor,
+          fontWeight: text == 'ADMIN' ? FontWeight.bold : FontWeight.normal,
+        ),
       ),
     );
   }
