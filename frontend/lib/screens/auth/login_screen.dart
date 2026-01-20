@@ -127,6 +127,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Nếu đăng nhập thành công thì lưu jwt token vào storage
                         await JwtTokenStorage.saveToken(jwtToken);
+                        final userId = await AuthService().fetchCurrentUserId(jwtToken);
+                        await JwtTokenStorage.saveUserId(userId);
 
                         // Kiểm tra context còn sống hay không
                         if (!context.mounted) return;

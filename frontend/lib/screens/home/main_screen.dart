@@ -19,8 +19,8 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  // TODO: Lấy userId từ JWT token sau khi đăng nhập
-  final int _userId = 2;
+  int? _userId;
+  bool _isLoadingUser = true;
 
   // Movies để truyền cho SearchScreen
   List<Movie> _movies = [];
@@ -29,7 +29,17 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    _loadUserId();
     _loadMovies();
+  }
+
+  Future<void> _loadUserId() async {
+    final userId = await JwtTokenStorage.getUserId();
+    if (!mounted) return;
+    setState(() {
+      _userId = userId;
+      _isLoadingUser = false;
+    });
   }
 
   Future<void> _loadMovies() async {
@@ -82,7 +92,13 @@ class _MainScreenState extends State<MainScreen> {
             ? _buildLoadingScreen()
             : SearchScreen(movies: _movies, showBackButton: false);
       case 2:
-        return OrderHistoryScreen(userId: _userId);
+        if (_isLoadingUser) {
+          return _buildLoadingScreen();
+        }
+        if (_userId == null) {
+          return _buildLoginRequired();
+        }
+        return OrderHistoryScreen(userId: _userId!);
       case 3:
         return _buildProfilePlaceholder();
       default:
@@ -182,6 +198,46 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoginRequired() {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              'Vui lòng đăng nhập để xem lịch sử',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.accent,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              child: const Text('Đăng nhập'),
             ),
           ],
         ),
