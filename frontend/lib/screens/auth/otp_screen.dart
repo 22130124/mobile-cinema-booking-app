@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/auth/reset_password_screen.dart';
+import 'package:frontend/screens/home/home_screen.dart';
 import '../../services/auth/auth_service.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
@@ -194,6 +195,15 @@ class _OtpScreenState extends State<OtpScreen> {
                                   token: result,
                                 ),
                               ),
+                            );
+                            break;
+                          case "change_password":
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const HomeScreen(),
+                              ),
+                                  (route) => false,
                             );
                             break;
                           default:

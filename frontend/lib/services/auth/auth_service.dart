@@ -72,7 +72,7 @@ class AuthService {
   }
 
   // Xác thực OTP
-  Future<String> verifyOtp(String email, String otp) async {
+  Future<String> verifyOtp(String? email, String otp) async {
     final url = Uri.parse('$baseUrl/verify-otp');
     final response = await http.post(
       url,
@@ -94,7 +94,7 @@ class AuthService {
   }
 
   // Gửi lại OTP
-  Future<void> resendOtp(String email) async {
+  Future<void> resendOtp(String? email) async {
     final url = Uri.parse('$baseUrl/resend-otp');
     final response = await http.post(
       url,
@@ -264,5 +264,7 @@ class AuthService {
       throw message;
     }
   }
+
+  void ChangePassword(String email) {}
 }
 
