@@ -3,6 +3,10 @@ import 'package:flutter/material.dart';
 import '../../config/app_colors.dart';
 import '../../model/admin/cinema_dto.dart';
 import '../../services/admin/admin_cinema_api_service.dart';
+import '../../widgets/admin/admin_drawer.dart';
+import 'admin_dashboard_screen.dart';
+import 'admin_movies_screen.dart';
+import 'admin_trailers_screen.dart';
 
 class AdminCinemasScreen extends StatefulWidget {
   const AdminCinemasScreen({super.key});
@@ -157,32 +161,49 @@ class _AdminCinemasScreenState extends State<AdminCinemasScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: AdminDrawer(
+        currentRoute: 'cinemas',
+        onMenuTap: (routeKey) {
+          if (routeKey == 'cinemas') {
+            Navigator.pop(context);
+            return;
+          }
+
+          final navigator = Navigator.of(context, rootNavigator: true);
+          Navigator.pop(context);
+
+          Future.delayed(const Duration(milliseconds: 200), () {
+            Widget? screen;
+            switch (routeKey) {
+              case 'dashboard':
+                screen = const AdminDashboardScreen();
+                break;
+              case 'trailers':
+                screen = const AdminTrailersScreen();
+                break;
+              case 'movies':
+                screen = const AdminMoviesScreen();
+                break;
+            }
+
+            if (screen != null) {
+              navigator.pushReplacement(
+                MaterialPageRoute(builder: (_) => screen!),
+              );
+            }
+          });
+        },
+      ),
       appBar: AppBar(
         backgroundColor: AppColors.backgroundLight,
-        titleSpacing: 0,
-        automaticallyImplyLeading: false,
-        leadingWidth: 64,
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => Navigator.maybePop(context),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new,
-                color: AppColors.accent,
-                size: 18,
-              ),
-            ),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: AppColors.textPrimary),
+            onPressed: () => Scaffold.of(context).openDrawer(),
           ),
         ),
         title: const Text(
-          'Admin - Cinemas',
+          'Admin • Cinemas',
           style: TextStyle(color: AppColors.textPrimary),
         ),
         actions: [
