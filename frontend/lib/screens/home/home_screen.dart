@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/auth/change_password_screen.dart';
 import 'dart:async';
 import '../../config/app_colors.dart';
 import '../../model/movie_model.dart';
 import '../../services/movie_service.dart';
+import '../../storage/jwt_token_storage.dart';
 import '../../widgets/home/movie_banner.dart';
 import '../../widgets/home/movie_card.dart';
+import '../auth/login_screen.dart';
 import '../movie_details/movie_details_screen.dart';
+import '../user/profile_info_screen.dart';
 import 'search_screen.dart';
 import 'all_movies_screen.dart';
 
@@ -47,7 +51,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Load dữ liệu từ API
   Future<void> _loadMoviesFromAPI() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -63,7 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ]);
 
       if (!mounted) return;
-      
+
       setState(() {
         _allMovies = results[0];
         _popularMovies = results[1];
@@ -72,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     } on MovieServiceException catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _isLoading = false;
         _errorMessage = e.message;
@@ -81,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
       print('MovieServiceException: $e');
     } catch (e) {
       if (!mounted) return;
-      
+
       setState(() {
         _isLoading = false;
         _errorMessage = 'Đã xảy ra lỗi không xác định!';
@@ -95,11 +99,17 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Movie> get _filteredMovies {
     switch (_selectedTab) {
       case MovieStatus.nowShowing:
-        return _allMovies.where((m) => m.status == MovieStatus.nowShowing).toList();
+        return _allMovies
+            .where((m) => m.status == MovieStatus.nowShowing)
+            .toList();
       case MovieStatus.special:
-        return _allMovies.where((m) => m.status == MovieStatus.special).toList();
+        return _allMovies
+            .where((m) => m.status == MovieStatus.special)
+            .toList();
       case MovieStatus.comingSoon:
-        return _allMovies.where((m) => m.status == MovieStatus.comingSoon).toList();
+        return _allMovies
+            .where((m) => m.status == MovieStatus.comingSoon)
+            .toList();
     }
   }
 
@@ -123,9 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => MovieDetailScreen(
-          movieId: movie.id.toString(),
-        ),
+        builder: (_) => MovieDetailScreen(movieId: movie.id.toString()),
       ),
     );
   }
@@ -134,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildErrorIcon() {
     IconData iconData;
     Color iconColor;
-    
+
     switch (_errorType) {
       case MovieErrorType.timeout:
         iconData = Icons.timer_off_outlined;
@@ -152,7 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
         iconData = Icons.error_outline_rounded;
         iconColor = AppColors.error;
     }
-    
+
     return Container(
       width: 100,
       height: 100,
@@ -211,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 // Icon theo loại lỗi
                 _buildErrorIcon(),
                 SizedBox(height: 24),
-                
+
                 // Tiêu đề lỗi
                 Text(
                   _getErrorTitle(),
@@ -223,7 +231,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 12),
-                
+
                 // Mô tả lỗi
                 Text(
                   _errorMessage!,
@@ -235,7 +243,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   textAlign: TextAlign.center,
                 ),
                 SizedBox(height: 32),
-                
+
                 // Nút thử lại
                 Container(
                   width: double.infinity,
@@ -245,7 +253,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     icon: Icon(Icons.refresh, size: 20),
                     label: Text(
                       'Thử lại',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accent,
@@ -345,37 +356,99 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildSearchBar(BuildContext context) {
     return Container(
-      margin: EdgeInsets.all(16),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SearchScreen(movies: _allMovies),
-            ),
-          );
-        },
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: AppColors.searchBackground,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.search, color: AppColors.searchIcon, size: 22),
-              SizedBox(width: 12),
-              Text(
-                'Tìm kiếm phim...',
-                style: TextStyle(
-                  color: AppColors.textHint,
-                  fontSize: 15,
+      margin: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          // SEARCH BAR
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SearchScreen(movies: _allMovies),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.searchBackground,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.search, color: AppColors.searchIcon, size: 22),
+                    const SizedBox(width: 12),
+                    Text(
+                      'Tìm kiếm phim...',
+                      style: TextStyle(color: AppColors.textHint, fontSize: 15),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+
+          const SizedBox(width: 12),
+
+          // USER ICON + DROPDOWN
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'profile':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ProfileInfoScreen(),
+                    ),
+                  );
+                  break;
+                case 'change-password':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const ChangePasswordScreen(),
+                    ),
+                  );
+                  break;
+                case 'logout':
+                  // Clear storage
+                  JwtTokenStorage.clear();
+
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                    (route) => false,
+                  );
+                  break;
+              }
+            },
+            itemBuilder: (context) => [
+              PopupMenuItem(value: 'profile', child: const Text('Xem hồ sơ')),
+              const PopupMenuItem(
+                value: 'change-password',
+                child: Text('Thay đổi mật khẩu'),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Text('Đăng xuất', style: TextStyle(color: Colors.red)),
+              ),
+            ],
+            offset: const Offset(0, 50),
+            // Thêm offset để menu hiển thị dưới avatar
+            child: CircleAvatar(
+              radius: 22,
+              backgroundColor: AppColors.surface,
+              child: Icon(Icons.person, color: AppColors.textPrimary),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -422,7 +495,9 @@ class _HomeScreenState extends State<HomeScreen> {
             title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               fontSize: 14,
             ),
@@ -515,10 +590,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SizedBox(height: 8),
           Text(
             currentMovie.genre,
-            style: TextStyle(
-              fontSize: 14,
-              color: AppColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
           ),
           SizedBox(height: 12),
           Row(
@@ -567,7 +639,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSection(BuildContext context, String title, List<Movie> movies, IconData icon, Color color) {
+  Widget _buildSection(
+    BuildContext context,
+    String title,
+    List<Movie> movies,
+    IconData icon,
+    Color color,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

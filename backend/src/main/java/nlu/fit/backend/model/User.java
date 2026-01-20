@@ -3,54 +3,37 @@ package nlu.fit.backend.model;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.hibernate.annotations.ColumnDefault;
+import nlu.fit.backend.model.auth.Account;
 
-import java.time.Instant;
-import java.util.List;
-
-@Getter
-@Setter
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id", nullable = false)
     private Long id;
 
-    @Column(name = "username", nullable = false, length = 50)
-    private String username;
-
-    @Column(name = "password", nullable = false)
-    private String password;
-
-    @Column(name = "email", nullable = false, length = 100)
-    private String email;
-
-    @Column(name = "full_name", length = 100)
+    @Column(name = "full_name")
     private String fullName;
 
-    @Column(name = "phone", length = 15)
+    @Enumerated(EnumType.STRING)
+    private UserGender gender;
+
     private String phone;
 
     @Column(name = "avatar_url")
     private String avatarUrl;
 
-    @ColumnDefault("1")
-    @Column(name = "status")
-    private Byte status;
+    @Column(name = "avatar_public_id")
+    private String avatarPublicId;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "created_at")
-    private Instant createdAt;
+    @Enumerated(EnumType.STRING)
+    private UserStatus status;
 
-    @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "updated_at")
-    private Instant updatedAt;
+    @OneToOne(mappedBy = "user")
+    private Account account;
 
-    @ManyToMany
-    @JoinTable(name = "user_roles",
-            joinColumns = @JoinColumn(name = "user_id"),
-            inverseJoinColumns = @JoinColumn(name = "role_id"))
-    private List<Role> roles;
+    public enum UserGender {MALE, FEMALE}
+    public enum UserStatus {COMPLETED, INCOMPLETED}
 }

@@ -292,7 +292,7 @@ class BookingSeatController extends ChangeNotifier {
       userId: userId,
       seatIds: seatIds,
       userInfor: UserInforRequest(
-        userEmail: 'user@example.com',
+        userEmail: 'user_profile@example.com',
         userPhone: '0000000000',
         userName: 'Guest',
       ),

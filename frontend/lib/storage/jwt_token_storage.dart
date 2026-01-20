@@ -13,11 +13,6 @@ class JwtTokenStorage {
     await storage.write(key: _key, value: token);
   }
 
-  static Future<void> saveUserId(int userId) async {
-    final storage = _storage();
-    await storage.write(key: _userIdKey, value: userId.toString());
-  }
-
   static Future<String?> getToken() async {
     final storage = _storage();
     return await storage.read(key: _key);
@@ -28,6 +23,11 @@ class JwtTokenStorage {
     final value = await storage.read(key: _userIdKey);
     if (value == null) return null;
     return int.tryParse(value);
+  }
+
+  static Future<bool> isLoggedIn() async {
+    final token = await getToken();
+    return token != null && token.isNotEmpty;
   }
 
   static Future<void> clear() async {

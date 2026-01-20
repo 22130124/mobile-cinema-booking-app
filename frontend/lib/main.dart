@@ -4,6 +4,8 @@ import 'package:frontend/screens/admin/admin_trailers_screen.dart';
 import 'package:frontend/screens/auth/login_screen.dart';
 import 'package:frontend/screens/payment/payment_success_screen.dart';
 
+import 'config/app_colors.dart';
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());

@@ -1,4 +1,4 @@
-package nlu.fit.backend.model;
+package nlu.fit.backend.model.auth;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -24,6 +24,6 @@ public class EmailOtp {
 
     private LocalDateTime expiredAt;
 
-    public enum OtpType {REGISTER, FORGOT_PASSWORD}
+    public enum OtpType {REGISTER, FORGOT_PASSWORD, CHANGE_PASSWORD}
 }
 

@@ -1,8 +1,11 @@
-package nlu.fit.backend.model;
+package nlu.fit.backend.model.auth;
 
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import nlu.fit.backend.model.User;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "accounts")
@@ -11,7 +14,12 @@ import lombok.Setter;
 public class Account {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer id;
+    private Long id;
+
+    @OneToOne(cascade = CascadeType.ALL)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    private User user;
 
     private String email;
 

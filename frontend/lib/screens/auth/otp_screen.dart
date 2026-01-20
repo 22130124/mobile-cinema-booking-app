@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:frontend/screens/auth/reset_password_screen.dart';
-import '../../services/auth_service.dart';
+import 'package:frontend/screens/home/home_screen.dart';
+import '../../services/auth/auth_service.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
 import 'login_screen.dart';
@@ -11,7 +12,7 @@ class OtpScreen extends StatefulWidget {
   final String email;
   final String type;
 
-  const OtpScreen({super.key, required this.email, required this.type});
+  const   OtpScreen({super.key, required this.email, required this.type});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -176,7 +177,7 @@ class _OtpScreenState extends State<OtpScreen> {
                         // Nếu OTP đúng, chuyển sang trang login
                         if (!context.mounted) return; //
                         switch (widget.type) {
-                          case "register":
+                          case "verify_email":
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
@@ -192,8 +193,18 @@ class _OtpScreenState extends State<OtpScreen> {
                                 builder: (context) => ResetPasswordScreen(
                                   email: widget.email,
                                   token: result,
+                                  redirectScreen: "login",
                                 ),
                               ),
+                            );
+                            break;
+                          case "change_password":
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const HomeScreen(),
+                              ),
+                                  (route) => false,
                             );
                             break;
                           default:

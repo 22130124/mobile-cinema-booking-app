@@ -4,7 +4,10 @@ import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import nlu.fit.backend.dto.order.*;
 import nlu.fit.backend.model.*;
+import nlu.fit.backend.model.User;
 import nlu.fit.backend.repository.*;
+import nlu.fit.backend.repository.UserRepository;
+import nlu.fit.backend.service.user.UserService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -13,9 +16,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 @Service
 @AllArgsConstructor
 public class OrderService {
+    private final UserService userService;
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final TicketRepository ticketRepository;
@@ -40,8 +42,7 @@ public class OrderService {
 
     @Transactional
     public OrderResponse createOrder(PostOrder input) {
-        User user = userRepository.findById(input.userId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(input.userId()).orElseThrow(() -> new RuntimeException("User not found"));
 
         Showtime showTime = showTimeRepository.findById((long) input.showTimeId()).orElseThrow(
                 () -> new RuntimeException("Show time not found"));

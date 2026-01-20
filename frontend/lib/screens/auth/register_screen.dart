@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../services/auth_service.dart';
+import '../../services/auth/auth_service.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
-import '../../widgets/auth/social_button.dart';
+import '../../widgets/auth/google_login_button.dart';
 import 'otp_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -18,6 +18,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPassController = TextEditingController();
   bool _isObscure = true;
   bool _isLoading = false;
+
+  // Hàm kiểm tra định dạng email
+  bool isValidEmail(String email) {
+    final emailRegex = RegExp(
+      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+    );
+    return emailRegex.hasMatch(email);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,6 +112,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return;
                   }
 
+                  // Kiểm tra email đúng định dạng
+                  if (!isValidEmail(email)) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Email không đúng định dạng"),
+                      ),
+                    );
+                    return;
+                  }
+
+                  // Kiểm tra độ dài mật khẩu
+                  if (pass.length < 8) {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Mật khẩu phải có ít nhất 8 ký tự"),
+                      ),
+                    );
+                    return;
+                  }
+
                   // Kiểm tra mật khẩu có khớp hay không
                   if (pass != confirmPass) {
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -129,7 +159,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (_) =>
-                            OtpScreen(email: email, type: "register"),
+                            OtpScreen(email: email, type: "verify_email"),
                       ),
                     );
                   } catch (e) {
@@ -162,16 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 25),
 
               // Nút Đăng nhập Google
-              SocialButton(
-                text: "Đăng nhập với Google",
-                // Link icon Google
-                iconUrl:
-                    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
-                onTap: () {
-                  // TODO: Tích hợp Google Sign In
-                  print("Nhấn nút Google");
-                },
-              ),
+              const GoogleLoginButton(),
             ],
           ),
         ),

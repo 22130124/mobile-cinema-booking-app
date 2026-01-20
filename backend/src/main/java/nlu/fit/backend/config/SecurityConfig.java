@@ -29,9 +29,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/admin/**").hasRole("ADMIN") // chỉ cho phép quyền admin
-                        .requestMatchers("/auth/change-password").hasRole("USER")
-                        .requestMatchers("/auth/**").permitAll() // api công khai
+                        .requestMatchers("/api/auth/admin/**").hasRole("ADMIN") // chỉ cho phép quyền admin
+                        .requestMatchers("/api/users/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/auth/reset-password-for-current").hasRole("USER")
+                        .requestMatchers("/api/auth/**").permitAll() // api công khai
                         .requestMatchers("/api/movies/**").permitAll() // api phim công khai
                         .requestMatchers("/api/cinemas/**").permitAll() 
                         .requestMatchers("/api/showtimes/**").permitAll()

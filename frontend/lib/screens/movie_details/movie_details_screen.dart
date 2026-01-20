@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/utils/jwt_utils.dart';
 
 import '../../config/app_colors.dart';
 
@@ -132,7 +133,7 @@ class _MovieDetailScreenState extends State<MovieDetailScreen> {
       return;
     }
 
-    final userId = await JwtTokenStorage.getUserId();
+    final userId = await JwtUtil.getUserId();
     if (!mounted) return;
     if (userId == null) {
       _showSnack('Please log in to book seats.');

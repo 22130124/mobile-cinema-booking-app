@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/admin/admin_dashboard_screen.dart';
-import 'package:frontend/screens/home/main_screen.dart';
-import 'package:frontend/services/auth_service.dart';
-import 'package:frontend/utils/jwt_utils.dart';
-import '../../storage/jwt_token_storage.dart';
+import 'package:frontend/services/auth/auth_service.dart';
+import 'package:frontend/utils/auth_handler.dart';
+import '../../widgets/auth/google_login_button.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
 import '../../widgets/auth/auth_header.dart';
-import '../../widgets/auth/social_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -22,7 +19,12 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isObscure = true;
-  bool _isLoading = false;
+  bool _isLoginLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   CustomButton(
                     text: "Đăng Nhập",
-                    isLoading: _isLoading,
+                    isLoading: _isLoginLoading,
                     onTapAsync: () async {
                       final email = _emailController.text;
                       final password = _passwordController.text;
@@ -116,41 +118,21 @@ class _LoginScreenState extends State<LoginScreen> {
                       }
 
                       // Hiển thị biểu tượng loading trong lúc gọi API
-                      setState(() => _isLoading = true);
+                      setState(() => _isLoginLoading = true);
                       try {
                         // Gọi API đăng nhập tài khoản
-                        // Kết quả trả về jwt token
-                        final jwtToken = await AuthService().login(
+                        final result = await AuthService().login(
                           email,
                           password,
                         );
 
-                        debugPrint("JWT Token: $jwtToken");
-
-                        // Nếu đăng nhập thành công thì lưu jwt token vào storage
-                        await JwtTokenStorage.saveToken(jwtToken);
-                        final userId = await AuthService().fetchCurrentUserId(jwtToken);
-                        await JwtTokenStorage.saveUserId(userId);
-
-                        final bool isAdmin = isAdminRoleFromToken(jwtToken);
-                        // Kiểm tra context còn sống hay không
-                        if (!context.mounted) return;
-
-                        // Nếu là admin thì chuyển hướng vào AdminDashboardScreen còn không thì vào màn hình chính
-                        if (isAdmin) {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-                            (route) => false,
-                          );
-                        } else {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(builder: (_) => const MainScreen()),
-                            (route) => false,
-                          );
-                        }
-                        
+                        await AuthHandler.handleLoginSuccess(
+                          context: context,
+                          jwtToken: result.jwtToken,
+                          userStatus: result.userStatus,
+                          accountStatus: result.accountStatus,
+                          emailForOtp: _emailController.text,
+                        );
                       } catch (e) {
                         if (!context.mounted) return;
 
@@ -161,7 +143,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         debugPrint(e.toString());
                       } finally {
-                        if (context.mounted) setState(() => _isLoading = false);
+                        if (context.mounted)
+                          setState(() => _isLoginLoading = false);
                       }
                     },
                   ),
@@ -186,16 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 25),
 
                   // --- Nút Đăng nhập Google ---
-                  SocialButton(
-                    text: "Đăng nhập với Google",
-                    // Link icon Google
-                    iconUrl:
-                        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
-                    onTap: () {
-                      // TODO: Tích hợp Google Sign In
-                      print("Nhấn nút Google");
-                    },
-                  ),
+                  const GoogleLoginButton(),
 
                   const SizedBox(height: 30),
                   Row(

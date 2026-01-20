@@ -3,7 +3,6 @@ package nlu.fit.backend.repository;
 import nlu.fit.backend.model.Order;
 import nlu.fit.backend.model.User;
 import nlu.fit.backend.repository.admin.DailyRevenueRow;
-
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;

@@ -1,0 +1,310 @@
+import 'dart:convert';
+import 'package:flutter/cupertino.dart';
+import 'package:frontend/dtos/auth/login_response.dart';
+import 'package:http/http.dart' as http;
+import 'package:frontend/config/api_config.dart';
+
+import '../../storage/jwt_token_storage.dart';
+
+class AuthService {
+  final String baseUrl = '${getBaseUrl()}/auth';
+
+  // Đăng nhập tài khoản
+  Future<LoginResponse> login(String email, String password) async {
+    final url = Uri.parse('$baseUrl/login');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "password": password}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+
+    // Khi đăng nhập thành công, backend sẽ trả về jwt token và userStatus
+    // userStatus: trạng thái cho biết hồ sơ người dùng đã hoàn thiện chưa
+    // Parse JSON từ backend
+    final Map<String, dynamic> data = jsonDecode(response.body);
+    return LoginResponse.fromJson(data);
+  }
+
+  // Đăng nhập bằng Google
+  Future<LoginResponse> loginWithGoogle(String idToken) async {
+    final url = Uri.parse('$baseUrl/google-login');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"idToken": idToken}),
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+
+    final Map<String, dynamic> data = jsonDecode(response.body);
+    return LoginResponse.fromJson(data);
+  }
+
+  // Đăng ký tài khoản
+  Future<void> register(String email, String password) async {
+    final url = Uri.parse('$baseUrl/register');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "password": password}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+  }
+
+  // Xác thực OTP
+  Future<String> verifyOtp(String? email, String otp) async {
+    final url = Uri.parse('$baseUrl/verify-otp');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "otp": otp}),
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : 'OTP không hợp lệ hoặc đã hết hạn';
+      throw message;
+    }
+
+    // Nếu xác thực OTP cho chức năng quên mật khẩu
+    // Thì API sẽ trả về một token để phục vụ cho việc đặt lại mật khẩu
+    // Còn nếu là xác thực OTP cho chức năng đăng ký thì sẽ trả về null
+    return response.body;
+  }
+
+  // Gửi lại OTP
+  Future<void> resendOtp(String? email) async {
+    final url = Uri.parse('$baseUrl/resend-otp');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "type": "register"}),
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : 'Không thể gửi lại OTP. Vui lòng thử lại sau';
+      throw message;
+    }
+  }
+
+  // Quên mật khẩu
+  Future<void> forgotPassword(String email) async {
+    final url = Uri.parse('$baseUrl/forgot-password');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : 'Không thể gửi mã xác nhận. Vui lòng thử lại sau';
+      throw message;
+    }
+  }
+
+  // Đặt lại mật khẩu (chức năng quên mật khẩu)
+  Future<void> resetPassword(
+    String? email,
+    String? token,
+    String password,
+  ) async {
+    final url = Uri.parse('$baseUrl/reset-password');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({"email": email, "token": token, "password": password}),
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : 'Không thể đặt lại mật khẩu. Vui lòng thử lại sau';
+      throw message;
+    }
+  }
+
+  Future<void> resetPasswordForCurrentUser(String password) async {
+    final url = Uri.parse('$baseUrl/reset-password-for-current');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.post(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"password": password}),
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : 'Không thể đặt lại mật khẩu. Vui lòng thử lại sau';
+      throw message;
+    }
+  }
+
+  Future<int> fetchCurrentUserId(String token) async {
+    final url = Uri.parse('$BASE_URL/users/me');
+    final response = await http.get(
+      url,
+      headers: {"Authorization": "Bearer $token"},
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final idValue = data['id'];
+    if (idValue is int) {
+      return idValue;
+    }
+    if (idValue is num) {
+      return idValue.toInt();
+    }
+    if (idValue is String) {
+      final parsed = int.tryParse(idValue);
+      if (parsed != null) return parsed;
+    }
+    throw 'Invalid user_profile id';
+  }
+
+  // Kiểm tra mật khẩu cũ (phục vụ chức năng đổi mật khẩu)
+  Future<void> checkOldPassword(String oldPassword) async {
+    final url = Uri.parse('$baseUrl/check-old-password');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.post(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"oldPassword": oldPassword}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+  }
+
+  // Khóa tài khoản
+  Future<void> lockAccount(String email) async {
+    debugPrint('Email: $email');
+    final url = Uri.parse('$baseUrl/admin/lock');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.put(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+  }
+
+  // Mở khóa tài khoản
+  Future<void> unlockAccount(String email) async {
+    final url = Uri.parse('$baseUrl/admin/unlock');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.put(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+  }
+
+  // Đặt làm admin
+  Future<void> setAdmin(String email) async {
+    final url = Uri.parse('$baseUrl/admin/set-admin');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.put(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+  }
+
+  // Đặt làm admin
+  Future<void> setUser(String email) async {
+    final url = Uri.parse('$baseUrl/admin/set-user');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.put(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"email": email}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+  }
+}

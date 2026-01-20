@@ -36,8 +36,7 @@ public class OrderController {
     }
 
     @PostMapping("/createOrder")
-    public ResponseEntity<OrderResponse> createOrder(
-            @RequestBody PostOrder order) {
+    public ResponseEntity<OrderResponse> createOrder(@RequestBody PostOrder order) {
         OrderResponse response = orderService.createOrder(order);
         if (response == null) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();

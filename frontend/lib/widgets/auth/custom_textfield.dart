@@ -7,6 +7,7 @@ class CustomTextField extends StatelessWidget {
   final bool isPassword;
   final bool isObscure;
   final VoidCallback? onTogglePassword;
+  final TextInputType keyboardType;
 
   const CustomTextField({
     super.key,
@@ -16,6 +17,7 @@ class CustomTextField extends StatelessWidget {
     this.isPassword = false,
     this.isObscure = false,
     this.onTogglePassword,
+    this.keyboardType = TextInputType.text,
   });
 
   @override
