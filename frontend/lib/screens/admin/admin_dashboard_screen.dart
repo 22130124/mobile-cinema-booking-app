@@ -5,7 +5,9 @@ import '../../model/admin/report_overview_dto.dart';
 import '../../services/admin/reports_api_service.dart';
 import '../../services/admin/cinema_api_service.dart';
 import '../../model/admin/cinema_dto.dart';
+import '../../widgets/admin/admin_drawer.dart';
 import 'admin_trailers_screen.dart';
+import 'admin_movies_screen.dart';
 
 // Chart
 import '../../model/admin/daily_revenue_point_dto.dart';
@@ -186,8 +188,45 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      drawer: AdminDrawer(
+        currentRoute: 'dashboard',
+        onMenuTap: (routeKey) {
+          if (routeKey == 'dashboard') {
+            Navigator.pop(context);
+            return;
+          }
+          
+          // Lấy ROOT navigator (của app)
+          final navigator = Navigator.of(context, rootNavigator: true);
+          Navigator.pop(context);
+
+          Future.delayed(const Duration(milliseconds: 200), () {
+            Widget? screen;
+            switch (routeKey) {
+              case 'trailers':
+                screen = const AdminTrailersScreen();
+                break;
+              case 'movies':
+                screen = const AdminMoviesScreen();
+                break;
+            }
+            
+            if (screen != null) {
+              navigator.pushReplacement(
+                MaterialPageRoute(builder: (_) => screen!),
+              );
+            }
+          });
+        },
+      ),
       appBar: AppBar(
         backgroundColor: AppColors.backgroundLight,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const Icon(Icons.menu, color: AppColors.textPrimary),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
         title: const Text('Admin • Thống kê'),
         actions: [
           TextButton.icon(
@@ -443,6 +482,345 @@ class _KpiCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class AdminDashboardContent extends StatefulWidget {
+  const AdminDashboardContent({super.key});
+
+  @override
+  State<AdminDashboardContent> createState() => _AdminDashboardContentState();
+}
+
+class _AdminDashboardContentState extends State<AdminDashboardContent> {
+  final _api = ReportsApiService();
+  final _cinemaApi = CinemaApiService();
+
+  late DateTime from;
+  late DateTime to;
+  DateTime? lastUpdatedAt;
+
+  Future<ReportOverviewDto>? future;
+  Future<List<DailyRevenuePointDto>>? chartFuture;
+  List<CinemaDto> cinemas = [];
+  int? selectedCinemaId;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    from = DateTime(now.year, now.month, 1, 0, 0, 0);
+    to = now;
+    _reload();
+    _loadCinemas();
+  }
+
+  String _fmt(DateTime dt) => dt.toString().replaceFirst('.000', '');
+
+  String _formatVnd(double value) {
+    final s = value.round().toString();
+    final buf = StringBuffer();
+    for (int i = 0; i < s.length; i++) {
+      final reverseIndex = s.length - i;
+      buf.write(s[i]);
+      if (reverseIndex > 1 && reverseIndex % 3 == 1) buf.write(',');
+    }
+    return '${buf.toString()} ₫';
+  }
+
+  void _reload() {
+    setState(() {
+      future = _api.getOverview(from: from, to: to, cinemaId: selectedCinemaId);
+      chartFuture = _api.getRevenueDaily(from: from, to: to, cinemaId: selectedCinemaId);
+      lastUpdatedAt = DateTime.now();
+    });
+  }
+
+  Future<void> _loadCinemas() async {
+    try {
+      cinemas = await _cinemaApi.list();
+      setState(() {});
+    } catch (e) {
+      // ignore errors
+    }
+  }
+
+  void _setPresetToday() {
+    final now = DateTime.now();
+    setState(() {
+      from = DateTime(now.year, now.month, now.day, 0, 0, 0);
+      to = now;
+    });
+    _reload();
+  }
+
+  void _setPreset7d() {
+    final now = DateTime.now();
+    setState(() {
+      from = now.subtract(const Duration(days: 7));
+      to = now;
+    });
+    _reload();
+  }
+
+  void _setPreset30d() {
+    final now = DateTime.now();
+    setState(() {
+      from = now.subtract(const Duration(days: 30));
+      to = now;
+    });
+    _reload();
+  }
+
+  void _setPresetThisMonth() {
+    final now = DateTime.now();
+    setState(() {
+      from = DateTime(now.year, now.month, 1, 0, 0, 0);
+      to = now;
+    });
+    _reload();
+  }
+
+  Future<void> _pickDateTime({
+    required DateTime current,
+    required ValueChanged<DateTime> onChanged,
+  }) async {
+    final d = await showDatePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      initialDate: current,
+    );
+    if (d == null) return;
+
+    final t = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(current),
+    );
+    if (t == null) return;
+
+    onChanged(DateTime(d.year, d.month, d.day, t.hour, t.minute, 0));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width >= 900;
+
+    final chartCard = Card(
+      color: AppColors.backgroundCard,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Revenue chart',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Expanded(
+              child: FutureBuilder<List<DailyRevenuePointDto>>(
+                future: chartFuture,
+                builder: (context, snap) {
+                  if (snap.connectionState != ConnectionState.done) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snap.hasError) {
+                    return Center(
+                      child: Text(
+                        'Lỗi chart: ${snap.error}',
+                        style: const TextStyle(color: AppColors.error),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+
+                  final points = snap.data ?? [];
+                  if (points.isEmpty) {
+                    return const Center(
+                      child: Text(
+                        'Không có dữ liệu chart',
+                        style: TextStyle(color: AppColors.textSecondary),
+                        textAlign: TextAlign.center,
+                      ),
+                    );
+                  }
+
+                  return RevenueLineChart(points: points);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Preset filters
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _PresetChip(label: 'Today', onTap: _setPresetToday),
+              _PresetChip(label: '7 days', onTap: _setPreset7d),
+              _PresetChip(label: '30 days', onTap: _setPreset30d),
+              _PresetChip(label: 'This month', onTap: _setPresetThisMonth),
+              ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 140, maxWidth: 220),
+                child: Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.backgroundCard,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<int?>(
+                      isDense: true,
+                      iconSize: 20,
+                      value: selectedCinemaId,
+                      hint: Text('All cinemas', style: TextStyle(color: AppColors.textSecondary)),
+                      dropdownColor: AppColors.backgroundCard,
+                      style: TextStyle(color: AppColors.textPrimary),
+                      iconEnabledColor: AppColors.accent,
+                      items: [
+                        DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text('All cinemas', style: TextStyle(color: AppColors.textPrimary)),
+                        ),
+                        ...cinemas.map((c) => DropdownMenuItem<int?>(
+                              value: c.id,
+                              child: Text(c.name, style: TextStyle(color: AppColors.textPrimary)),
+                            )),
+                      ],
+                      onChanged: (v) {
+                        setState(() => selectedCinemaId = v);
+                        _reload();
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Custom range
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              OutlinedButton(
+                onPressed: () => _pickDateTime(
+                  current: from,
+                  onChanged: (v) {
+                    setState(() => from = v);
+                    _reload();
+                  },
+                ),
+                child: Text('From: ${_fmt(from)}'),
+              ),
+              OutlinedButton(
+                onPressed: () => _pickDateTime(
+                  current: to,
+                  onChanged: (v) {
+                    setState(() => to = v);
+                    _reload();
+                  },
+                ),
+                child: Text('To: ${_fmt(to)}'),
+              ),
+              if (lastUpdatedAt != null)
+                Text(
+                  'Last updated: ${_fmt(lastUpdatedAt!)}',
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          Expanded(
+            child: FutureBuilder<ReportOverviewDto>(
+              future: future,
+              builder: (context, snap) {
+                if (snap.connectionState != ConnectionState.done) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snap.hasError) {
+                  return Center(
+                    child: Text(
+                      'Lỗi: ${snap.error}',
+                      style: const TextStyle(color: AppColors.error),
+                    ),
+                  );
+                }
+
+                final data = snap.data!;
+                final cards = <Widget>[
+                  _KpiCard(
+                    title: 'Total revenue',
+                    value: _formatVnd(data.totalRevenue),
+                    icon: Icons.payments,
+                  ),
+                  _KpiCard(
+                    title: 'Paid orders',
+                    value: data.totalPaidOrders.toString(),
+                    icon: Icons.receipt_long,
+                  ),
+                  _KpiCard(
+                    title: 'Tickets sold',
+                    value: data.totalTicketsSold.toString(),
+                    icon: Icons.confirmation_number,
+                  ),
+                ];
+
+                if (isWide) {
+                  return Column(
+                    children: [
+                      Row(
+                        children: cards
+                            .map(
+                              (c) => Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(6),
+                                  child: c,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(child: chartCard),
+                    ],
+                  );
+                }
+
+                return ListView(
+                  children: [
+                    ...cards.map(
+                      (c) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: c,
+                      ),
+                    ),
+                    SizedBox(height: 320, child: chartCard),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

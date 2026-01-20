@@ -97,9 +97,11 @@ class _HomeScreenState extends State<HomeScreen> {
       case MovieStatus.nowShowing:
         return _allMovies.where((m) => m.status == MovieStatus.nowShowing).toList();
       case MovieStatus.special:
-        return _allMovies.where((m) => m.status == MovieStatus.special).toList();
+        return _allMovies.where((m) => m.status == MovieStatus.special || m.isSpecial).toList();
       case MovieStatus.comingSoon:
         return _allMovies.where((m) => m.status == MovieStatus.comingSoon).toList();
+      case MovieStatus.ended:
+        return _allMovies.where((m) => m.status == MovieStatus.ended).toList();
     }
   }
 
