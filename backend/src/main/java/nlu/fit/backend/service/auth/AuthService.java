@@ -62,16 +62,16 @@ public class AuthService {
         Account account = accountRepository.findByEmail(request.getEmail()).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thông tin đăng nhập không chính xác"));
 
+        // Kiểm tra mật khẩu
+        if (account.getPassword() == null || !passwordEncoder.matches(request.getPassword(), account.getPassword()))
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thông tin đăng nhập không chính xác");
+
         // Kiểm tra email đã được xác minh hay chưa
         if (account.getStatus() == UNVERIFIED) {
             sendOtp(account.getEmail(), REGISTER);
             return createLoginResponse(account, false);
-        } else {
-            if (!passwordEncoder.matches(request.getPassword(), account.getPassword()))
-                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Thông tin đăng nhập không chính xác");
-            if (account.getStatus() == INACTIVE) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
-            }
+        } else if (account.getStatus() == INACTIVE) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Tài khoản đã bị khóa");
         }
 
         // Trả về login response
@@ -82,21 +82,22 @@ public class AuthService {
     public LoginResponse createLoginResponse(Account account, boolean isSuccess) {
         // Tạo response trả về
         LoginResponse loginResponse = new LoginResponse();
+        loginResponse.setJwtToken("");
+        // userStatus: Để frontend biết được hồ sơ người dùng đã hoàn thiện chưa
+        // Để quyết định chuyển hướng vào trang chủ hay trang hồ sơ người dùng để cập nhật thông tin cho đầy đủ
+        loginResponse.setUserStatus(false);
+        // accountStatus: Gán giá trị accountStatus vào response
+        // Để phát hiện tài khoản chưa xác minh email hoặc đã bị khóa
+        loginResponse.setAccountStatus(String.valueOf(account.getStatus()));
+
         if (isSuccess) {
-            // Tạo và gán giá trị jwt token vào response
             String jwtToken = jwt.generate(account.getEmail(), account.getUser().getId(), String.valueOf(account.getRole()));
             loginResponse.setJwtToken(jwtToken);
-            // Tìm và gán giá trị userStatus (true/false) vào response
-            // Để frontend biết được hồ sơ người dùng đã hoàn thiện chưa
-            // Để quyết định chuyển hướng vào trang chủ hay trang hồ sơ người dùng để cập nhật thông tin cho đầy đủ
             if (account.getRole() == USER) {
                 boolean userStatus = userService.getUserStatus(account.getUser());
                 loginResponse.setUserStatus(userStatus);
             }
         }
-        // Gán giá trị accountStatus vào response
-        // Để phát hiện tài khoản chưa xác minh email hoặc đã bị khóa
-        loginResponse.setAccountStatus(String.valueOf(account.getStatus()));
         return loginResponse;
     }
 
@@ -115,11 +116,17 @@ public class AuthService {
 
             GoogleIdToken.Payload payload = idToken.getPayload();
             String email = payload.getEmail();
-            String googleUserId = payload.getSubject();
 
             // Tìm account, nếu không có account nào với email này thì tạo một account mới mới
             Account account = accountRepository.findByEmail(email)
                     .orElseGet(() -> createNewAccountAndUser(email, null, "google"));
+
+            // Một số trường hợp đã có account với email này nhưng chưa ở trạng thái UNVERIFIED
+            // Nếu đã đăng nhập bằng Google => chính chủ => Xác thực
+            if (account.getStatus() == UNVERIFIED) {
+                account.setStatus(ACTIVE);
+                accountRepository.save(account);
+            }
 
             return createLoginResponse(account, true);
 

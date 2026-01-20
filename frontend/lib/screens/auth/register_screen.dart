@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth/auth_service.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
-import '../../widgets/auth/social_button.dart';
+import '../../widgets/auth/google_login_button.dart';
 import 'otp_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -192,16 +192,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 25),
 
               // Nút Đăng nhập Google
-              SocialButton(
-                text: "Đăng nhập với Google",
-                // Link icon Google
-                iconUrl:
-                    "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
-                onTapSync: () {
-                  // TODO: Tích hợp Google Sign In
-                  print("Nhấn nút Google");
-                },
-              ),
+              const GoogleLoginButton(),
             ],
           ),
         ),

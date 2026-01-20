@@ -1,20 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/admin/admin_dashboard_screen.dart';
-import 'package:frontend/screens/admin/admin_user_management_screen.dart';
-import 'package:frontend/screens/home/home_screen.dart';
-import 'package:frontend/screens/user/profile_info_screen.dart';
 import 'package:frontend/services/auth/auth_service.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:jwt_decoder/jwt_decoder.dart';
-import '../../storage/jwt_token_storage.dart';
-import '../admin/dashboard_screen.dart';
-import 'otp_screen.dart';
+import 'package:frontend/utils/auth_handler.dart';
+import '../../widgets/auth/google_login_button.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
 import '../../widgets/auth/auth_header.dart';
-import '../../widgets/auth/social_button.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,87 +20,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isObscure = true;
   bool _isLoginLoading = false;
-  bool _isLoginGoogleLoading = false;
-  late final GoogleSignIn _googleSignIn;
-  bool _googleReady = false;
 
   @override
   void initState() {
     super.initState();
-
-    _googleSignIn = GoogleSignIn.instance;
-    _initGoogle();
-  }
-
-  Future<void> _initGoogle() async {
-    await _googleSignIn.initialize(
-      serverClientId:
-          '134285940318-ig9smfp4usqoj3qqvilbnrm1fgruj7l2.apps.googleusercontent.com',
-    );
-    setState(() => _googleReady = true);
-  }
-
-  // Hàm xử lý khi đăng nhập (thường/google) thành công
-  Future<void> _handleLoginSuccess({
-    required String jwtToken,
-    required bool userStatus,
-    required String accountStatus,
-  }) async {
-    // Decode JWT
-    final payload = JwtDecoder.decode(jwtToken);
-    final role = payload['role'] ?? 'USER';
-
-    // Lưu token
-    await JwtTokenStorage.saveToken(jwtToken);
-
-    // Kiểm tra trạng thái context
-    if (!mounted) return;
-
-    // Kiểm tra trạng thái tài khoản (UNVERIFIED/ACTIVE/INACTIVE)
-    if (accountStatus == 'UNVERIFIED') {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) =>
-              OtpScreen(email: _emailController.text, type: "verify_email"),
-        ),
-      );
-    } else {
-      // Dựa vào role để quyết định trang đích sẽ được chuyển đến
-      switch (role) {
-        case "USER":
-        // Nếu là user_profile mới đăng ký tài khoản thì sẽ chuyển vào trang hồ sơ người dùng
-          if (userStatus == false) {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const ProfileInfoScreen()),
-                  (_) => false,
-            );
-          } else {
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-                  (_) => false,
-            );
-          }
-          break;
-
-        case "ADMIN":
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const AdminUserManagementScreen()),
-                (_) => false,
-          );
-          break;
-
-        default:
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-                (_) => false,
-          );
-      }
-    }
   }
 
   @override
@@ -211,15 +126,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           password,
                         );
 
-                        // Lấy ra JWT Token từ kết quả trả về từ API
-                        final jwtToken = result.jwtToken;
-                        final userStatus = result.userStatus;
-                        final accountStatus = result.accountStatus;
-
-                        await _handleLoginSuccess(
-                          jwtToken: jwtToken,
-                          userStatus: userStatus,
-                          accountStatus: accountStatus,
+                        await AuthHandler.handleLoginSuccess(
+                          context: context,
+                          jwtToken: result.jwtToken,
+                          userStatus: result.userStatus,
+                          accountStatus: result.accountStatus,
+                          emailForOtp: _emailController.text,
                         );
                       } catch (e) {
                         if (!context.mounted) return;
@@ -257,68 +169,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 25),
 
                   // --- Nút Đăng nhập Google ---
-                  SocialButton(
-                    text: "Đăng nhập với Google",
-                    // Link icon Google
-                    iconUrl:
-                        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png",
-                    onTapAsync: _googleReady
-                        ? () async {
-                            // Hiển thị biểu tượng loading
-                            setState(() => _isLoginGoogleLoading = true);
-
-                            try {
-                              // Dùng authenticate()
-                              // Hàm này yêu cầu try-catch vì nó sẽ throw Exception nếu user hủy
-                              final GoogleSignInAccount googleUser =
-                                  await _googleSignIn.authenticate();
-
-                              // Lấy thông tin authentication (chứa idToken)
-                              final GoogleSignInAuthentication googleAuth =
-                                  googleUser.authentication;
-
-                              // Kiểm tra idToken
-                              if (googleAuth.idToken == null) {
-                                throw Exception(
-                                  "Không lấy được Google ID Token",
-                                );
-                              }
-
-                              // Gửi idToken về Backend Spring Boot
-                              final result = await AuthService()
-                                  .loginWithGoogle(googleAuth.idToken!);
-
-                              // Xử lý nếu đăng nhập thành công
-                              await _handleLoginSuccess(
-                                jwtToken: result.jwtToken,
-                                userStatus: result.userStatus,
-                                accountStatus: result.accountStatus
-                              );
-                            } catch (e) {
-                              // Xử lý lỗi hoặc người dùng hủy
-                              print("Đăng nhập Google thất bại: $e");
-
-                              if (!context.mounted) return;
-
-                              // Nếu không phải do người dùng hủy thì mới hiện thông báo
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text("Đăng nhập thất bại: $e"),
-                                ),
-                              );
-
-                              debugPrint(e.toString());
-
-                              // Logout để reset trạng thái
-                              _googleSignIn.signOut();
-                            } finally {
-                              if (mounted)
-                                setState(() => _isLoginGoogleLoading = false);
-                            }
-                          }
-                        : null,
-                    isLoading: _isLoginGoogleLoading,
-                  ),
+                  const GoogleLoginButton(),
 
                   const SizedBox(height: 30),
                   Row(
