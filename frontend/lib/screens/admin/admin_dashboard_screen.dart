@@ -5,6 +5,7 @@ import '../../model/admin/report_overview_dto.dart';
 import '../../services/admin/reports_api_service.dart';
 import '../../services/admin/cinema_api_service.dart';
 import '../../model/admin/cinema_dto.dart';
+import 'admin_cinemas_screen.dart';
 import 'admin_trailers_screen.dart';
 
 // Chart
@@ -60,6 +61,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       chartFuture = _api.getRevenueDaily(from: from, to: to, cinemaId: selectedCinemaId);
       lastUpdatedAt = DateTime.now();
     });
+  }
+
+  void _refreshAll() {
+    _reload();
+    _loadCinemas();
   }
 
   Future<void> _loadCinemas() async {
@@ -191,6 +197,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         title: const Text('Admin • Thống kê'),
         actions: [
           TextButton.icon(
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminCinemasScreen()),
+              );
+              if (!mounted) return;
+              _loadCinemas();
+            },
+            icon: const Icon(Icons.location_city, color: AppColors.accent),
+            label: const Text(
+              'Cinemas',
+              style: TextStyle(color: AppColors.accent),
+            ),
+          ),
+          TextButton.icon(
             onPressed: () => Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const AdminTrailersScreen()),
@@ -203,7 +224,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           IconButton(
             tooltip: 'Refresh',
-            onPressed: _reload,
+            onPressed: _refreshAll,
             icon: const Icon(Icons.refresh, color: AppColors.accent),
           ),
         ],

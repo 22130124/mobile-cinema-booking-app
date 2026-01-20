@@ -24,7 +24,7 @@ public class Cinema {
     @Column(name = "city", nullable = false, length = 100)
     private String city;
 
-    @Column(name = "image_url")
+    @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
 
     @ColumnDefault("1")
