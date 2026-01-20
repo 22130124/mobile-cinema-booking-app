@@ -157,8 +157,6 @@ class _AdminCinemasScreenState extends State<AdminCinemasScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 720;
-
     return Scaffold(
       backgroundColor: AppColors.background,
       drawer: AdminDrawer(
@@ -203,7 +201,7 @@ class _AdminCinemasScreenState extends State<AdminCinemasScreen> {
           ),
         ),
         title: const Text(
-          'Admin • Cinemas',
+          'Admin - Cinemas',
           style: TextStyle(color: AppColors.textPrimary),
         ),
         actions: [
@@ -226,24 +224,17 @@ class _AdminCinemasScreenState extends State<AdminCinemasScreen> {
           children: [
             Card(
               color: AppColors.backgroundCard,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: isWide
-                    ? Row(
-                        children: [
-                          Expanded(child: _buildSearchField()),
-                          const SizedBox(width: 12),
-                          _buildActiveToggle(),
-                        ],
-                      )
-                    : Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: [
-                          SizedBox(width: double.infinity, child: _buildSearchField()),
-                          _buildActiveToggle(),
-                        ],
-                      ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildSearchField(),
+                    const SizedBox(height: 12),
+                    const Divider(color: AppColors.divider, height: 16),
+                    _buildActiveToggle(),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -277,62 +268,10 @@ class _AdminCinemasScreenState extends State<AdminCinemasScreen> {
                   return ListView.separated(
                     padding: const EdgeInsets.only(bottom: 12),
                     itemCount: list.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 10),
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, i) {
                       final c = list[i];
-                      final statusColor = c.isActive ? AppColors.success : AppColors.error;
-                      final statusLabel = c.isActive ? 'Active' : 'Inactive';
-                      final location = [c.address, c.city].where((s) => s.isNotEmpty).join(' • ');
-
-                      return Card(
-                        color: AppColors.backgroundCard,
-                        child: ListTile(
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  '${c.name} (#${c.id})',
-                                  style: const TextStyle(color: AppColors.textPrimary),
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: statusColor.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: statusColor),
-                                ),
-                                child: Text(
-                                  statusLabel,
-                                  style: TextStyle(color: statusColor, fontSize: 12),
-                                ),
-                              ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            location.isEmpty ? 'No address info' : location,
-                            style: const TextStyle(color: AppColors.textSecondary),
-                          ),
-                          trailing: Wrap(
-                            spacing: 6,
-                            children: [
-                              IconButton(
-                                tooltip: 'Edit',
-                                icon: const Icon(Icons.edit, color: AppColors.warning),
-                                onPressed: () => openEditDialog(c),
-                              ),
-                              IconButton(
-                                tooltip: c.isActive ? 'Deactivate' : 'Activate',
-                                icon: Icon(
-                                  c.isActive ? Icons.block : Icons.check_circle,
-                                  color: c.isActive ? AppColors.error : AppColors.success,
-                                ),
-                                onPressed: () => toggleActive(c),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
+                      return _buildCinemaCard(c);
                     },
                   );
                 },
@@ -344,19 +283,198 @@ class _AdminCinemasScreenState extends State<AdminCinemasScreen> {
     );
   }
 
+  Widget _buildCinemaCard(CinemaDto cinema) {
+    final statusColor = cinema.isActive ? AppColors.success : AppColors.error;
+    final statusLabel = cinema.isActive ? 'Active' : 'Inactive';
+    final addressLine = cinema.address.trim();
+    final cityLine = cinema.city.trim();
+    final hasAddress = addressLine.isNotEmpty || cityLine.isNotEmpty;
+
+    return Card(
+      color: AppColors.backgroundCard,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildCinemaAvatar(cinema.imageUrl),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              '${cinema.name} (#${cinema.id})',
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildStatusPill(label: statusLabel, color: statusColor),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      if (addressLine.isNotEmpty)
+                        Text(
+                          addressLine,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      if (cityLine.isNotEmpty)
+                        Text(
+                          cityLine,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      if (!hasAddress)
+                        const Text(
+                          'No address info',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(color: AppColors.divider, height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _buildActionLink(
+                  icon: Icons.edit,
+                  label: 'Edit',
+                  color: AppColors.warning,
+                  onTap: () => openEditDialog(cinema),
+                ),
+                const SizedBox(width: 16),
+                _buildActionLink(
+                  icon: cinema.isActive ? Icons.block : Icons.check_circle,
+                  label: cinema.isActive ? 'Deactivate' : 'Activate',
+                  color: cinema.isActive ? AppColors.error : AppColors.success,
+                  onTap: () => toggleActive(cinema),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCinemaAvatar(String imageUrl) {
+    final trimmed = imageUrl.trim();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 54,
+        height: 54,
+        color: AppColors.surface,
+        child: trimmed.isEmpty
+            ? const Icon(Icons.location_city, color: AppColors.textHint)
+            : Image.network(
+                trimmed,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: AppColors.surface,
+                  alignment: Alignment.center,
+                  child: const Icon(Icons.location_city, color: AppColors.textHint),
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildStatusPill({
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionLink({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          child: Row(
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildSearchField() {
     return TextField(
       controller: _searchCtl,
       style: const TextStyle(color: AppColors.textPrimary),
-      decoration: const InputDecoration(
-        labelText: 'Search by name, address, city',
-        labelStyle: TextStyle(color: AppColors.textSecondary),
-        enabledBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.border),
+      decoration: InputDecoration(
+        hintText: 'Search by name, address, city',
+        hintStyle: const TextStyle(color: AppColors.textHint),
+        prefixIcon: const Icon(Icons.search, color: AppColors.searchIcon),
+        filled: true,
+        fillColor: AppColors.searchBackground,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
         ),
-        focusedBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: AppColors.accent),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.accent),
         ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       ),
       onSubmitted: (_) => setState(() {}),
       onChanged: (_) => setState(() {}),
@@ -365,13 +483,23 @@ class _AdminCinemasScreenState extends State<AdminCinemasScreen> {
 
   Widget _buildActiveToggle() {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('Show inactive', style: TextStyle(color: AppColors.textSecondary)),
-        Switch(
-          value: showInactive,
-          onChanged: (v) => setState(() => showInactive = v),
-          activeColor: AppColors.accent,
+        const Text(
+          'Show inactive',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        ),
+        const Spacer(),
+        Transform.scale(
+          scale: 0.85,
+          child: Switch(
+            value: showInactive,
+            onChanged: (v) => setState(() => showInactive = v),
+            activeColor: AppColors.backgroundLight,
+            activeTrackColor: AppColors.accent,
+            inactiveThumbColor: AppColors.textHint,
+            inactiveTrackColor: AppColors.border,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
         ),
       ],
     );
