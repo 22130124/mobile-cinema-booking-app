@@ -31,7 +31,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/admin/**").hasRole("ADMIN") // chỉ cho phép quyền admin
                         .requestMatchers("/api/users/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/auth/change-password").hasRole("USER")
+                        .requestMatchers("/api/auth/reset-password-for-current").hasRole("USER")
                         .requestMatchers("/api/auth/**").permitAll() // api công khai
                         .requestMatchers("/api/movies/**").permitAll() // api phim công khai
                         .requestMatchers("/api/cinemas/**").permitAll() 

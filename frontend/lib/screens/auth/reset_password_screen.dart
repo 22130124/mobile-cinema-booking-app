@@ -1,14 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/home/home_screen.dart';
+import 'package:frontend/storage/jwt_token_storage.dart';
 import '../../services/auth/auth_service.dart';
 import '../../widgets/auth/custom_textfield.dart';
 import '../../widgets/auth/custom_button.dart';
 import 'login_screen.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
-  final String email;
-  final String token;
+  final String? email;
+  final String? token;
+  final String redirectScreen;
 
-  const ResetPasswordScreen({super.key, required this.email, required this.token});
+  const ResetPasswordScreen({
+    super.key,
+    this.email,
+    this.token,
+    required this.redirectScreen,
+  });
 
   @override
   State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
@@ -35,7 +43,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     return Scaffold(
       backgroundColor: Color(0xFF1A1A1A),
       appBar: AppBar(
-        title: const Text("Đặt Lại Mật Khẩu", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Đặt Lại Mật Khẩu",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
@@ -55,25 +66,40 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               const SizedBox(height: 40),
 
               // Nhập mật khẩu mới
-              Align(alignment: Alignment.centerLeft, child: const Text("Mật Khẩu Mới", style: TextStyle(color: Colors.white70))),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: const Text(
+                  "Mật Khẩu Mới",
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
               CustomTextField(
                 controller: _newPassController,
                 hintText: "Nhập mật khẩu mới",
                 icon: Icons.lock_outline,
                 isPassword: true,
                 isObscure: _isObscure,
-                onTogglePassword: () => setState(() => _isObscure = !_isObscure),
+                onTogglePassword: () =>
+                    setState(() => _isObscure = !_isObscure),
               ),
 
               // Xác nhận mật khẩu
-              Align(alignment: Alignment.centerLeft, child: const Text("Xác Nhận Mật Khẩu", style: TextStyle(color: Colors.white70))),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: const Text(
+                  "Xác Nhận Mật Khẩu",
+                  style: TextStyle(color: Colors.white70),
+                ),
+              ),
               CustomTextField(
                 controller: _confirmPassController,
                 hintText: "Nhập lại mật khẩu mới",
-                icon: Icons.lock_clock_outlined, // Icon khác một chút
+                icon: Icons.lock_clock_outlined,
+                // Icon khác một chút
                 isPassword: true,
                 isObscure: _isObscure,
-                onTogglePassword: () => setState(() => _isObscure = !_isObscure),
+                onTogglePassword: () =>
+                    setState(() => _isObscure = !_isObscure),
               ),
 
               const SizedBox(height: 40),
@@ -108,11 +134,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                   setState(() => _isLoading = true);
                   try {
                     // Gọi API đặt lại mật khẩu
-                    await AuthService().resetPassword(
-                      widget.email,
-                      widget.token,
-                      _newPassController.text,
-                    );
+                    if (await JwtTokenStorage.isLoggedIn()) {
+                      await AuthService().resetPasswordForCurrentUser(
+                        _newPassController.text,
+                      );
+                    } else {
+                      await AuthService().resetPassword(
+                        widget.email,
+                        widget.token,
+                        _newPassController.text,
+                      );
+                    }
 
                     // Hiển thị thông báo đặt lại mật khẩu thành công
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -129,14 +161,22 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
                     // Kiểm tra context còn sống hay không
                     if (!context.mounted) return;
-                    // Quay về trang login
-                    Navigator.pushAndRemoveUntil(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const LoginScreen(),
-                      ),
-                          (route) => false,
-                    );
+                    // Điều hướng sang trang đích
+                    switch(widget.redirectScreen) {
+                      case "home":
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const HomeScreen()),
+                              (route) => false,
+                        );
+                        break;
+                      case "login":
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                              (route) => false,
+                        );
+                    }
                   } catch (e) {
                     if (!context.mounted) return;
 

@@ -129,8 +129,8 @@ class AuthService {
 
   // Đặt lại mật khẩu (chức năng quên mật khẩu)
   Future<void> resetPassword(
-    String email,
-    String token,
+    String? email,
+    String? token,
     String password,
   ) async {
     final url = Uri.parse('$baseUrl/reset-password');
@@ -147,6 +147,27 @@ class AuthService {
       throw message;
     }
   }
+
+  Future<void> resetPasswordForCurrentUser(String password) async {
+    final url = Uri.parse('$baseUrl/reset-password-for-current');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.post(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"password": password}),
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : 'Không thể đặt lại mật khẩu. Vui lòng thử lại sau';
+      throw message;
+    }
+  }
+
   Future<int> fetchCurrentUserId(String token) async {
     final url = Uri.parse('$BASE_URL/users/me');
     final response = await http.get(
@@ -174,6 +195,28 @@ class AuthService {
       if (parsed != null) return parsed;
     }
     throw 'Invalid user_profile id';
+  }
+
+  // Kiểm tra mật khẩu cũ (phục vụ chức năng đổi mật khẩu)
+  Future<void> checkOldPassword(String oldPassword) async {
+    final url = Uri.parse('$baseUrl/check-old-password');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.post(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+      body: jsonEncode({"oldPassword": oldPassword}),
+    );
+
+    if (response.statusCode != 200) {
+      // Lấy trực tiếp body
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
   }
 
   // Khóa tài khoản
@@ -264,7 +307,4 @@ class AuthService {
       throw message;
     }
   }
-
-  void ChangePassword(String email) {}
 }
-

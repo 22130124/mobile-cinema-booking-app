@@ -6,9 +6,8 @@ import nlu.fit.backend.dto.auth.response.LoginResponse;
 import nlu.fit.backend.service.account.AccountService;
 import nlu.fit.backend.service.auth.AuthService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 import static nlu.fit.backend.model.auth.Account.AccountRole.ADMIN;
 import static nlu.fit.backend.model.auth.Account.AccountRole.USER;
@@ -60,14 +59,19 @@ public class AuthController {
 
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
-        authService.resetPassword(request);
+        authService.resetPassword(request, null);
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/change-password")
-    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
-        authService.changePassword(request);
+    @PostMapping("/reset-password-for-current")
+    public ResponseEntity<?> resetPasswordForCurrentUser(@RequestBody ResetPasswordRequest request, Authentication authentication) {
+        authService.resetPassword(request, authentication);
+        return ResponseEntity.ok().build();
+    }
 
+    @PostMapping("/check-old-password")
+    public ResponseEntity<?> checkOldPassword(@RequestBody CheckOldPasswordRequest request, Authentication authentication) {
+        authService.checkOldPassword(request, authentication);
         return ResponseEntity.ok().build();
     }
 

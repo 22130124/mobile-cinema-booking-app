@@ -63,7 +63,10 @@ public class UserService {
                 () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng"));
 
         // Thực hiện cập nhật thông tin
-        user.setFullName(request.getFullName());
+        String fullName = user.getFullName();
+        if (fullName != null && !fullName.isEmpty()) {
+            user.setFullName(request.getFullName());
+        }
         switch (request.getGender().toLowerCase()) {
             case "male":
                 user.setGender(MALE);
@@ -73,10 +76,13 @@ public class UserService {
                 break;
         }
         // Kiểm tra số điện thoại
-        if (userRepository.existsByPhone(request.getPhone())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại đã được sử dụng");
+        String phone = request.getPhone();
+        if (!phone.equalsIgnoreCase(user.getPhone())) {
+            if (userRepository.existsByPhone(request.getPhone())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại đã được sử dụng");
+            }
+            user.setPhone(request.getPhone());
         }
-        user.setPhone(request.getPhone());
 
         // Thiết lập trạng thái hồ sơ đã hoàn thành
         user.setStatus(COMPLETED);

@@ -25,6 +25,11 @@ class JwtTokenStorage {
     return int.tryParse(value);
   }
 
+  static Future<bool> isLoggedIn() async {
+    final token = await getToken();
+    return token != null && token.isNotEmpty;
+  }
+
   static Future<void> clear() async {
     final storage = _storage();
     await storage.delete(key: _key);

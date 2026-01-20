@@ -24,9 +24,42 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
   String? _avatarUrl;
   String? _avatarPublicId;
   bool _isLoading = false;
+  bool _isFetching = true;
   bool _isUploadingAvatar = false;
 
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    // Gọi API lấy thông tin người dùng ngay khi màn hình khởi tạo
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      final user = await UserService().getMe(); //
+
+      if (!mounted) return;
+
+      setState(() {
+        _fullNameController.text = user.fullName ?? "";
+        _phoneController.text = user.phone ?? "";
+        _gender = user.gender.toLowerCase();
+        _avatarUrl = user.avatarUrl;
+        _avatarPublicId = user.avatarPublicId;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    } finally {
+      if (mounted) {
+        setState(() => _isFetching = false);
+      }
+    }
+  }
 
   // Hàm bất đồng bộ (async) để người dùng chọn ảnh đại diện (avatar) từ thư viện ảnh
   Future<void> _pickAvatar() async {
@@ -84,6 +117,13 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Hiển thị màn hình loading nếu đang tải dữ liệu ban đầu
+    if (_isFetching) {
+      return const Scaffold(
+        backgroundColor: Color(0xFF1A1A1A),
+        body: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+      );
+    }
     return Scaffold(
       backgroundColor: const Color(0xFF1A1A1A),
       appBar: AppBar(
@@ -110,17 +150,23 @@ class _ProfileInfoScreenState extends State<ProfileInfoScreen> {
                   CircleAvatar(
                     radius: 55,
                     backgroundColor: Colors.grey.shade800,
+                    // Logic hiển thị ảnh:
+                    // - Nếu có ảnh local (_avatar) -> Hiện ảnh local (FileImage)
+                    // - Nếu không có ảnh local nhưng có URL (_avatarUrl) -> Hiện ảnh mạng (NetworkImage)
+                    // - Không có cả hai -> null (để hiện child Icon)
                     backgroundImage: _avatar != null
-                        ? FileImage(_avatar!)
+                        ? FileImage(_avatar!) as ImageProvider
+                        : (_avatarUrl != null && _avatarUrl!.isNotEmpty)
+                        ? NetworkImage(_avatarUrl!)
                         : null,
                     child: _isUploadingAvatar
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : _avatar == null
+                        : (_avatar == null && (_avatarUrl == null || _avatarUrl!.isEmpty))
                         ? const Icon(
-                            Icons.person,
-                            size: 55,
-                            color: Colors.white54,
-                          )
+                      Icons.person,
+                      size: 55,
+                      color: Colors.white54,
+                    )
                         : null,
                   ),
                   Positioned(

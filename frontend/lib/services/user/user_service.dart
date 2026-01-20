@@ -6,6 +6,7 @@ import 'package:frontend/storage/jwt_token_storage.dart';
 import 'package:frontend/utils/jwt_utils.dart';
 import 'package:http/http.dart' as http;
 
+import '../../dtos/user_profile/user_response.dart';
 import '../../model/admin/admin_user_management/user_info.dart';
 import '../../dtos/user_profile/update_user_profile_request.dart';
 
@@ -106,5 +107,27 @@ class UserService {
           : '${response.statusCode} ${response.reasonPhrase}';
       throw message;
     }
+  }
+
+  Future<UserResponse> getMe() async {
+    final url = Uri.parse('$baseUrl/me');
+    final jwtToken = await JwtTokenStorage.getToken();
+    final response = await http.get(
+      url,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer $jwtToken",
+      },
+    );
+
+    if (response.statusCode != 200) {
+      final message = response.body.isNotEmpty
+          ? response.body
+          : '${response.statusCode} ${response.reasonPhrase}';
+      throw message;
+    }
+
+    final dynamic data = jsonDecode(response.body);
+    return UserResponse.fromJson(data);
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/screens/auth/reset_password_screen.dart';
 import 'package:frontend/services/auth/auth_service.dart';
 import 'package:frontend/utils/jwt_utils.dart';
 import '../../widgets/auth/custom_button.dart';
@@ -13,11 +14,11 @@ class ChangePasswordScreen extends StatefulWidget {
 }
 
 class ChangePasswordScreenState extends State<ChangePasswordScreen> {
+  final _oldPassController = TextEditingController();
+  bool _isLoading = false;
+  bool _isObscure = true;
   @override
   Widget build(BuildContext context) {
-    final oldPassController = TextEditingController();
-    bool isLoading = false;
-
     return Scaffold(
       backgroundColor: Color(0xFF1A1A1A),
       appBar: AppBar(
@@ -46,16 +47,19 @@ class ChangePasswordScreenState extends State<ChangePasswordScreen> {
             const SizedBox(height: 40),
             const Text("Mật khẩu", style: TextStyle(color: Colors.white70)),
             CustomTextField(
-              controller: oldPassController,
-              hintText: "Nhập mật khẩu của bạn",
+              controller: _oldPassController,
+              hintText: "Nhập mật khẩu cũ của bạn",
               icon: Icons.lock_outline,
+              isPassword: true,
+              isObscure: _isObscure,
+              onTogglePassword: () => setState(() => _isObscure = !_isObscure),
             ),
             const SizedBox(height: 30),
             CustomButton(
-              text: "Gửi Mã Xác Nhận",
-              isLoading: isLoading,
+              text: "Kiểm tra",
+              isLoading: _isLoading,
               onTapAsync: () async {
-                final oldPassword = oldPassController.text;
+                final oldPassword = _oldPassController.text;
                 if (oldPassword.isEmpty) {
                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -64,20 +68,19 @@ class ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   return;
                 }
 
-                setState(() => isLoading = true);
+                setState(() => _isLoading = true);
 
                 try {
-                  final email = await JwtUtil.getEmail();
-                  AuthService().ChangePassword(email!);
+                  await AuthService().checkOldPassword(oldPassword);
 
                   // Kiểm tra context còn sống hay không
                   if (!context.mounted) return;
 
-                  // Nếu thành công thì chuyển sang trang OTP
+                  // Nếu thành công thì chuyển sang trang ResetPassword
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => OtpScreen(email: email, type: "change_password"),
+                      builder: (_) => ResetPasswordScreen(redirectScreen: "home"),
                     ),
                   );
                 } catch (e) {
@@ -88,19 +91,8 @@ class ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     context,
                   ).showSnackBar(SnackBar(content: Text(e.toString())));
                 } finally {
-                  if (context.mounted) setState(() => isLoading = false);
+                  if (context.mounted) setState(() => _isLoading = false);
                 }
-
-                // Chuyển sang màn hình nhập OTP, truyền email vừa nhập qua
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => OtpScreen(
-                      email: oldPassController.text,
-                      type: "reset_password",
-                    ),
-                  ),
-                );
               },
             ),
           ],

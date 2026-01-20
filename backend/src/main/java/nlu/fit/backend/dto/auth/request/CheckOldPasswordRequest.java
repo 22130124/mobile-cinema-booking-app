@@ -3,7 +3,6 @@ package nlu.fit.backend.dto.auth.request;
 import lombok.Data;
 
 @Data
-public class ChangePasswordRequest {
+public class CheckOldPasswordRequest {
     private String oldPassword;
-    private String newPassword;
 }

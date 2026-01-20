@@ -12,7 +12,7 @@ class OtpScreen extends StatefulWidget {
   final String email;
   final String type;
 
-  const OtpScreen({super.key, required this.email, required this.type});
+  const   OtpScreen({super.key, required this.email, required this.type});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -193,6 +193,7 @@ class _OtpScreenState extends State<OtpScreen> {
                                 builder: (context) => ResetPasswordScreen(
                                   email: widget.email,
                                   token: result,
+                                  redirectScreen: "login",
                                 ),
                               ),
                             );

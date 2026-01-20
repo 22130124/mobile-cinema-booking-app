@@ -24,6 +24,6 @@ public class EmailOtp {
 
     private LocalDateTime expiredAt;
 
-    public enum OtpType {REGISTER, FORGOT_PASSWORD}
+    public enum OtpType {REGISTER, FORGOT_PASSWORD, CHANGE_PASSWORD}
 }
 

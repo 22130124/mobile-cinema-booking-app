@@ -4,7 +4,6 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import nlu.fit.backend.dto.auth.request.*;
 import nlu.fit.backend.dto.auth.response.LoginResponse;
@@ -12,6 +11,7 @@ import nlu.fit.backend.model.auth.Account;
 import nlu.fit.backend.model.auth.EmailOtp;
 import nlu.fit.backend.model.auth.PasswordResetToken;
 import nlu.fit.backend.model.User;
+import nlu.fit.backend.repository.UserRepository;
 import nlu.fit.backend.repository.auth.AccountRepository;
 import nlu.fit.backend.repository.auth.EmailOtpRepository;
 import nlu.fit.backend.repository.auth.PasswordResetTokenRepository;
@@ -45,6 +45,7 @@ import static nlu.fit.backend.model.auth.EmailOtp.OtpType.*;
 public class AuthService {
     private final AccountRepository accountRepository;
     private final EmailOtpRepository emailOtpRepository;
+    private final UserRepository userRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwt;
@@ -285,44 +286,63 @@ public class AuthService {
 
     // Phương thức thay đổi mật khẩu cho tài khoản
     @Transactional
-    public void resetPassword(ResetPasswordRequest request) {
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "Token không hợp lệ"));
+    public void resetPassword(ResetPasswordRequest request, Authentication authentication) {
+        // Xử lý cho người đã đăng nhập
+        if (authentication != null) {
+            System.out.println("Authentication object is not null");
+            Long userId = (Long) authentication.getPrincipal();
+            if (userId == null)
+                throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Người dùng chưa đăng nhập");
 
-        try {
-            if (resetToken.getExpiredAt().isBefore(LocalDateTime.now())) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "Yêu cầu thay đổi mật khẩu đã hết hạn");
+            // Tìm kiếm User theo userId
+            User user = userRepository.findById(userId).orElseThrow(
+                    () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng"));
+
+            Account account = user.getAccount();
+
+            if (account == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy tài khoản người dùng");
+
+            accountService.changePassword(account.getEmail(), request.getPassword());
+        } else { // Xử lý cho người dùng chưa đăng nhập
+            System.out.println("Authentication object is null");
+            if (request.getToken() != null) {
+                PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(request.getToken())
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST, "Token không hợp lệ"));
+
+                try {
+                    if (resetToken.getExpiredAt().isBefore(LocalDateTime.now())) {
+                        throw new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST, "Yêu cầu thay đổi mật khẩu đã hết hạn");
+                    }
+
+                    // Thực hiện thay đổi mật khẩu
+                    accountService.changePassword(request.getEmail(), request.getPassword());
+                } finally {
+                    // Xóa token trong database
+                    passwordResetTokenRepository.delete(resetToken);
+                }
             }
-
-            // Thực hiện thay đổi mật khẩu
-            accountService.changePassword(request.getEmail(), request.getPassword());
-        } finally {
-            // Xóa token trong database
-            passwordResetTokenRepository.delete(resetToken);
         }
     }
 
     @Transactional
-    public void changePassword(ChangePasswordRequest request) {
+    public void checkOldPassword(CheckOldPasswordRequest request, Authentication authentication) {
         // Lấy email người dùng đang đăng nhập
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth.getName();
+        Long userId = (Long) authentication.getPrincipal();
+        if (userId == null)
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Người dùng chưa đăng nhập");
 
-        // Lấy ra account tương ứng với email
-        Account account = accountRepository.findByEmail(email).orElseThrow(() ->
-                new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy tài khoản"));
+        // Tìm kiếm User theo userId
+        User user = userRepository.findById(userId).orElseThrow(
+                () -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy thông tin người dùng"));
+
+        Account account = user.getAccount();
+
+        if (account == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Không tìm thấy tài khoản người dùng");
 
         // So khớp mật khẩu cũ
         if (!passwordEncoder.matches(request.getOldPassword(), account.getPassword()))
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Mật khẩu cũ không chính xác");
-
-        // Mã hóa thông tin mật khẩu mới từ request
-        String hashedPassword = passwordEncoder.encode(request.getNewPassword());
-
-        // Cập nhật lại mật khẩu
-        account.setPassword(hashedPassword);
-        accountRepository.save(account);
     }
 }
