@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/screens/admin/admin_dashboard_screen.dart';
-import 'package:frontend/screens/admin/admin_trailers_screen.dart';
 import 'package:frontend/screens/auth/login_screen.dart';
 import 'package:frontend/screens/payment/payment_success_screen.dart';
 
@@ -44,22 +42,7 @@ class MyApp extends StatelessWidget {
           return MaterialPageRoute(builder: (_) => const LoginScreen());
         }
         return null;
-      },
-      // home: const MainScreen(),
-      // home: const OrderHistoryScreen(userId: 2),
-      // home: const CreateOrder(),
-
-      /*
-        Test Create Order Screen
-        home: const OrderHistoryScreen(userId: 2),
-        home: const CreateOrder(),
-       */
-
-      
-      // Test ADMIN Screen
-      // home: const AdminDashboardScreen(),
-      // home: const AdminTrailersScreen(),
-       
+      },      
     );
   }
 }

@@ -212,6 +212,10 @@ class AllMoviesScreen extends StatelessWidget {
         text = 'Sắp chiếu';
         color = AppColors.chipComingSoon;
         break;
+      case MovieStatus.ended:
+        text = 'Ngừng chiếu';
+        color = AppColors.textHint;
+        break;
     }
 
     return Container(

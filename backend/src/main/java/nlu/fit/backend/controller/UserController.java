@@ -48,7 +48,7 @@ public class UserController {
         Account account = accountRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Account not found"));
 
-        String username = buildUsername(email);
+        String username = buildUniqueUsername(email);
         User user = new User();
         user.setEmail(email);
         user.setUsername(username);
@@ -61,6 +61,29 @@ public class UserController {
         user.setUpdatedAt(now);
 
         return userRepository.save(user);
+    }
+
+    private String buildUniqueUsername(String email) {
+        String base = buildUsername(email);
+        String candidate = base;
+        int counter = 1;
+
+        while (userRepository.existsByUsername(candidate)) {
+            String suffix = "-" + counter;
+            int maxBaseLength = 50 - suffix.length();
+            String trimmedBase = base.length() > maxBaseLength ? base.substring(0, maxBaseLength) : base;
+            candidate = trimmedBase + suffix;
+            counter++;
+            if (counter > 9999) {
+                String fallback = "user" + System.currentTimeMillis();
+                candidate = fallback.length() > 50 ? fallback.substring(0, 50) : fallback;
+                if (!userRepository.existsByUsername(candidate)) {
+                    break;
+                }
+            }
+        }
+
+        return candidate;
     }
 
     private String buildUsername(String email) {

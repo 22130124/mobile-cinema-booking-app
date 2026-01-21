@@ -19,7 +19,7 @@ public class CinemaController {
 
     @GetMapping
     public List<CinemaDto> list() {
-        return cinemaRepository.findAll()
+        return cinemaRepository.findAllActive()
                 .stream()
                 .map(c -> new CinemaDto(c.getId(), c.getName()))
                 .toList();

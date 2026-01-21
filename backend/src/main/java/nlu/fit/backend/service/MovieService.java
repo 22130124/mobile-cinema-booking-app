@@ -26,7 +26,7 @@ public class MovieService {
                 .collect(Collectors.toList());
     }
 
-    //Lấy phim theo status: "nowShowing", "special", "comingSoon"
+    //Lấy phim theo status: "nowShowing", "special", "comingSoon", "ended"
     public List<MovieResponse> getMoviesByStatus(String status) {
         List<Movie> movies;
         
@@ -39,6 +39,9 @@ public class MovieService {
                 break;
             case "comingsoon":
                 movies = movieRepository.findComingSoonMovies();
+                break;
+            case "ended":
+                movies = movieRepository.findEndedMovies();
                 break;
             default:
                 movies = movieRepository.findAll();
